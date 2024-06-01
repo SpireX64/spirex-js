@@ -1,0 +1,44 @@
+{
+  "name": "@spirex/js-exception",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Extendable exception class for Browser and NodeJS",
+  "author": {
+    "name": "Artem Sobolenkov (SpireX)",
+    "email": "SpireX@outlook.com",
+    "url": "https://github.com/SpireX64"
+  },
+  "private": false,
+  "main": "./build/Exception.js",
+  "module": "./build/Exception.mjs",
+  "types": "./Exception.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./types/Exception.d.ts",
+        "default": "./build/Exception.mjs"
+      },
+      "require": {
+        "types": "./types/Exception.d.ts",
+        "default": "./build/Exception.cjs"
+      },
+      "default": {
+        "types": "./types/Exception.d.ts",
+        "default": "./build/Exception.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rollup --config --environment NODE_ENV:development",
+    "build:release": "rollup --config --environment NODE_ENV:production",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "rollup": "*",
+    "rollup-plugin-terser": "*",
+    "jest": "*",
+    "babel-jest": "*",
+    "@babel/preset-env": "*"
+  }
+}

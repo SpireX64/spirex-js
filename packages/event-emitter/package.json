@@ -1,0 +1,14 @@
+{
+  "name": "@spirex/js-event-emitter",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/jest": "*",
+    "prettier": "*",
+    "eslint": "*",
+    "rollup": "*",
+    "rollup-plugin-terser": "*",
+    "@rollup/plugin-typescript": "*",
+    "jest": "*",
+    "ts-jest": "*"
+  }
+}
