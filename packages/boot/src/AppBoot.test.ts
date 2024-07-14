@@ -6,7 +6,7 @@ import {
     TFinishEventData,
     TFinishEventListener,
     TProcessEventData,
-    TProcessEventListener
+    TProcessEventListener,
 } from "./AppBoot";
 
 describe("AppBoot", () => {
@@ -18,7 +18,7 @@ describe("AppBoot", () => {
 
             // Assert --------------
             expect(bootTask).not.toBeNull();
-            expect(bootTask.name).toBe('');
+            expect(bootTask.name).toBe("");
             expect(bootTask.optional).toBeFalsy();
             expect(bootTask.dependsOn).toBeUndefined();
         });
@@ -33,7 +33,7 @@ describe("AppBoot", () => {
 
             // Assert ------------
             expect(bootTask.run).toBe(myTaskFunc);
-            expect(bootTask.name).toBe('myTaskFunc');
+            expect(bootTask.name).toBe("myTaskFunc");
         });
 
         test("with dependencies", () => {
@@ -109,8 +109,8 @@ describe("AppBoot", () => {
         });
     });
 
-    describe('Add tasks', () => {
-        test('add.task.one', () => {
+    describe("Add tasks", () => {
+        test("add.task.one", () => {
             // Arrange ------
             const task = AppBoot.task(() => {
             });
@@ -124,11 +124,11 @@ describe("AppBoot", () => {
             expect(boot.tasksCount).toBe(1);
         });
 
-        test('add.task.many', () => {
+        test("add.task.many", () => {
             // Arrange -------
-            const taskA = AppBoot.task('A', () => {
+            const taskA = AppBoot.task("A", () => {
             });
-            const taskB = AppBoot.task('B', () => {
+            const taskB = AppBoot.task("B", () => {
             });
             const boot = new AppBoot();
 
@@ -141,7 +141,7 @@ describe("AppBoot", () => {
             expect(boot.tasksCount).toBe(2);
         });
 
-        test('add.task.nullable', () => {
+        test("add.task.nullable", () => {
             // Arrange -------
             const boot = new AppBoot();
 
@@ -152,11 +152,11 @@ describe("AppBoot", () => {
             expect(boot.tasksCount).toBe(0);
         });
 
-        test('add.task.chain', () => {
+        test("add.task.chain", () => {
             // Arrange --------
             const boot = new AppBoot();
             const taskA = AppBoot.task(() => {
-            })
+            });
             const taskB = AppBoot.task(() => {
             }, [taskA]);
             const taskC = AppBoot.task(() => {
@@ -167,12 +167,12 @@ describe("AppBoot", () => {
 
             // Assert ---------
             expect(boot.tasksCount).toBe(3);
-            expect(boot.isTaskReachable(taskA)).toBeTruthy()
-            expect(boot.isTaskReachable(taskB)).toBeTruthy()
-            expect(boot.isTaskReachable(taskC)).toBeTruthy()
+            expect(boot.isTaskReachable(taskA)).toBeTruthy();
+            expect(boot.isTaskReachable(taskB)).toBeTruthy();
+            expect(boot.isTaskReachable(taskC)).toBeTruthy();
         });
 
-        test('add.task.unreachable', () => {
+        test("add.task.unreachable", () => {
             // Arrange -----------
             const taskA = AppBoot.task(() => {
             });
@@ -189,7 +189,7 @@ describe("AppBoot", () => {
             expect(boot.isTaskReachable(taskB)).toBeFalsy();
         });
 
-        test('add.after-start', async () => {
+        test("add.after-start", async () => {
             // Arrange --------
             const boot = new AppBoot();
             const task = AppBoot.task(() => {
@@ -209,7 +209,7 @@ describe("AppBoot", () => {
 
             // Assert ---------
             expect(error).not.toBeNull();
-        })
+        });
     });
 
     describe("Boot process", () => {
@@ -218,7 +218,7 @@ describe("AppBoot", () => {
             const boot = new AppBoot();
 
             // Act ----------
-            const result = await boot.runAsync()
+            const result = await boot.runAsync();
 
             // Assert -------
             expect(result).not.toBeFalsy();
@@ -235,7 +235,7 @@ describe("AppBoot", () => {
             const promise = boot.runAsync();
             let error: Error | null = null;
             try {
-                await boot.runAsync()
+                await boot.runAsync();
             } catch (e) {
                 if (e instanceof Error)
                     error = e;
@@ -262,20 +262,20 @@ describe("AppBoot", () => {
             expect(result.success).toContain(task);
             expect(result.failure).toHaveLength(0);
             expect(result.skipped).toHaveLength(0);
-        })
+        });
 
         test("run.importantTask.failure", async () => {
             // Arrange --------
             const boot = new AppBoot();
 
             const taskFunc = jest.fn(() => {
-                throw Error()
+                throw Error();
             });
             const task = AppBoot.task(taskFunc);
             boot.add(task);
 
             // Act ------------
-            let error: Error | null = null
+            let error: Error | null = null;
             try {
                 await boot.runAsync();
             } catch (e) {
@@ -287,20 +287,20 @@ describe("AppBoot", () => {
             expect(taskFunc).toHaveBeenCalled();
             expect(error).not.toBeNull();
             expect(error?.message).toContain(task.name);
-        })
+        });
 
         test("run.importantTask.failure.notErrorType", async () => {
             // Arrange --------
             const boot = new AppBoot();
 
             const taskFunc = jest.fn(() => {
-                throw "String error type"
+                throw "String error type";
             });
             const task = AppBoot.task(taskFunc);
             boot.add(task);
 
             // Act ------------
-            let error: Error | null = null
+            let error: Error | null = null;
             try {
                 await boot.runAsync();
             } catch (e) {
@@ -312,14 +312,14 @@ describe("AppBoot", () => {
             expect(taskFunc).toHaveBeenCalled();
             expect(error).not.toBeNull();
             expect(error?.message).toContain(task.name);
-        })
+        });
 
         test("run.optionalTask.failure", async () => {
             // Arrange --------
             const boot = new AppBoot();
 
             const taskFunc = jest.fn(() => {
-                throw Error("Test error")
+                throw Error("Test error");
             });
             const task = AppBoot.task(taskFunc, null, true);
             boot.add(task);
@@ -347,8 +347,8 @@ describe("AppBoot", () => {
             const result = await boot.runAsync();
 
             // Assert ------------
-            expect(result.success).toContain(taskA)
-            expect(result.success).toContain(taskB)
+            expect(result.success).toContain(taskA);
+            expect(result.success).toContain(taskB);
         });
 
         test("depend", async () => {
@@ -358,13 +358,13 @@ describe("AppBoot", () => {
             const seq: string[] = [];
 
             const taskA = AppBoot.task("A", () => {
-                seq.push("A")
+                seq.push("A");
             });
             const taskB = AppBoot.task("B", () => {
-                seq.push("B")
+                seq.push("B");
             }, [taskA]);
             const taskC = AppBoot.task("C", () => {
-                seq.push("C")
+                seq.push("C");
             });
             boot.add([taskA, taskB, taskC]);
 
@@ -373,9 +373,9 @@ describe("AppBoot", () => {
 
             // Arrange -----------
             expect(seq.join("")).toBe("ACB");
-            expect(result.success).toContain(taskA)
-            expect(result.success).toContain(taskB)
-            expect(result.success).toContain(taskC)
+            expect(result.success).toContain(taskA);
+            expect(result.success).toContain(taskB);
+            expect(result.success).toContain(taskC);
         });
 
         test("depend.fail.strict", async () => {
@@ -383,12 +383,12 @@ describe("AppBoot", () => {
             const boot = new AppBoot();
 
             const funcTaskA = jest.fn(() => {
-                throw Error("Test Error")
+                throw Error("Test Error");
             });
             const taskA = AppBoot.task("A", funcTaskA, null, true);
 
             const funcTaskB = jest.fn();
-            const taskB = AppBoot.task('B', funcTaskB, [taskA]);
+            const taskB = AppBoot.task("B", funcTaskB, [taskA]);
 
             boot.add([taskA, taskB]);
 
@@ -399,20 +399,20 @@ describe("AppBoot", () => {
             expect(result.success).toHaveLength(0);
             expect(result.failure).toContain(taskA);
             expect(result.skipped).toContain(taskB);
-        })
+        });
 
         test("depend.fail.optional", async () => {
             // Arrange -------------
             const boot = new AppBoot();
 
             const funcTaskA = jest.fn(() => {
-                throw Error("Test Error")
+                throw Error("Test Error");
             });
             const taskA = AppBoot.task("A", funcTaskA, null, true);
 
             const funcTaskB = jest.fn();
             const taskB = AppBoot.task("B", funcTaskB, [
-                {task: taskA, optional: true},
+                { task: taskA, optional: true },
             ]);
 
             boot.add([taskA, taskB]);
@@ -426,7 +426,82 @@ describe("AppBoot", () => {
             expect(result.skipped).toHaveLength(0);
         });
 
-        test('run.depend.unreachable.important', async () => {
+        test("deepDepend.skip", async () => {
+            // Arrange -------
+            const taskA = AppBoot.task("A", () => {
+                throw Error("Test fail");
+            }, null, true);
+            const taskB = AppBoot.task("B", () => {
+            }, [taskA], true);
+            const deepTask = AppBoot.task("Deep", () => {
+            }, [taskB], true);
+
+            const boot = new AppBoot().add([taskA, taskB, deepTask]);
+
+            // Act -----------
+            const result = await boot.runAsync();
+
+            // Assert --------
+            expect(result.failure).toContain(taskA);
+            expect(result.skipped).toContain(taskB);
+            expect(result.skipped).toContain(deepTask);
+        });
+
+        test("deepDepend.skip.fail", async () => {
+            // Arrange -----------
+
+            // RUN
+            const taskA = AppBoot.task("A", () => {
+            });
+
+            // FAILED
+            const taskB = AppBoot.task("B", () => {
+                throw Error("Test fail");
+            }, null, true);
+
+            // SKIP
+            const taskC = AppBoot.task("C", () => {
+            }, [taskA, taskB], true);
+
+            // IDLE
+            const taskD = AppBoot.task("D", () => {
+            }, [taskA, taskC]);
+
+            const boot = new AppBoot().add([taskA, taskB, taskC, taskD]);
+
+            // Act ---------------
+            await boot.runAsync();
+
+            // Assert ------------
+        });
+
+        test("deepDepend.skip.important", async () => {
+            // Arrange -------
+            const taskA = AppBoot.task("A", () => {
+                throw Error("Test fail");
+            }, null, true);
+            const taskB = AppBoot.task("B", () => {
+            }, [taskA], true);
+            const deepTask = AppBoot.task("Deep", () => {
+            }, [taskB]);
+
+            const boot = new AppBoot().add([taskA, taskB, deepTask]);
+
+            // Act ----------
+            let error: Error | null = null;
+            try {
+                await boot.runAsync();
+            } catch (e) {
+                if (e instanceof Error)
+                    error = e;
+            }
+
+            // Assert --------
+            expect(error).not.toBeNull();
+            expect(error?.message).toContain(deepTask.name);
+        });
+
+        test("run.depend.unreachable.important", async () => {
             // Arrange ---------
             const boot = new AppBoot();
             const taskA = AppBoot.task("A", () => {
@@ -436,7 +511,7 @@ describe("AppBoot", () => {
             boot.add(taskB);
 
             // Act -------------
-            let error: Error | null = null
+            let error: Error | null = null;
             try {
                 await boot.runAsync();
             } catch (e) {
@@ -448,7 +523,7 @@ describe("AppBoot", () => {
             expect(error).not.toBeNull();
         });
 
-        test('run.depend.unreachable.optional', async () => {
+        test("run.depend.unreachable.optional", async () => {
             // Arrange ---------
             const boot = new AppBoot();
             const taskA = AppBoot.task("A", () => {
@@ -467,20 +542,23 @@ describe("AppBoot", () => {
             expect(result.unreachable.length).toBe(1);
         });
 
-        test('listener.process', async () => {
+        test("listener.process", async () => {
             // Arrange ----------------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
-            const taskB = AppBoot.task("B", () => {});
-            const taskC = AppBoot.task("C", () => {}, [ taskA, taskB ]);
+            const taskA = AppBoot.task("A", () => {
+            });
+            const taskB = AppBoot.task("B", () => {
+            });
+            const taskC = AppBoot.task("C", () => {
+            }, [taskA, taskB]);
 
             boot.add([taskA, taskB, taskC]);
 
-            const processLog: TProcessEventData[] = []
+            const processLog: TProcessEventData[] = [];
             const processListener = jest.fn((process => {
                 processLog.push(process);
             }) as TProcessEventListener);
-            boot.addEventListener('process', processListener);
+            boot.addEventListener("process", processListener);
 
             // Act --------------------
             await boot.runAsync();
@@ -502,12 +580,16 @@ describe("AppBoot", () => {
             expect(processLog[2].task).toBe(taskC);
         });
 
-        test('listener.process.checkState', async () => {
+        test("listener.process.checkState", async () => {
             // Arrange -----------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
-            const taskB = AppBoot.task("B", () => { throw Error('Test error')}, [ taskA ], true);
-            const taskC = AppBoot.task("C", () => {}, [
+            const taskA = AppBoot.task("A", () => {
+            });
+            const taskB = AppBoot.task("B", () => {
+                throw Error("Test error");
+            }, [taskA], true);
+            const taskC = AppBoot.task("C", () => {
+            }, [
                 taskA,
                 { task: taskB, optional: true },
             ]);
@@ -520,10 +602,10 @@ describe("AppBoot", () => {
                     process.getStateOf(taskA),
                     process.getStateOf(taskB),
                     process.getStateOf(taskC),
-                ])
+                ]);
 
             }) as TProcessEventListener);
-            boot.addEventListener('process', processListener);
+            boot.addEventListener("process", processListener);
 
             // Act ---------------
             const result = await boot.runAsync();
@@ -536,28 +618,30 @@ describe("AppBoot", () => {
             expect(processLog.length).toBe(3);
 
             // A: Success, B & C: Idle (waiting for A)
-            expect(processLog[0]).toStrictEqual([ BootTaskState.Success, BootTaskState.Idle, BootTaskState.Idle ])
+            expect(processLog[0]).toStrictEqual([BootTaskState.Success, BootTaskState.Idle, BootTaskState.Idle]);
 
             // A: Success, B: Failure, C: Idle (waiting for C)
-            expect(processLog[1]).toStrictEqual([ BootTaskState.Success, BootTaskState.Failure, BootTaskState.Idle ])
+            expect(processLog[1]).toStrictEqual([BootTaskState.Success, BootTaskState.Failure, BootTaskState.Idle]);
 
             // A: Success, B: Failure, C: Success (B is optional)
-            expect(processLog[2]).toStrictEqual([ BootTaskState.Success, BootTaskState.Failure, BootTaskState.Success ])
+            expect(processLog[2]).toStrictEqual([BootTaskState.Success, BootTaskState.Failure, BootTaskState.Success]);
         });
 
-        test('listener.process.checkState.noTask', async () => {
+        test("listener.process.checkState.noTask", async () => {
             // Arrange -------------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
-            const taskB = AppBoot.task("B", () => {}, [ taskA ]);
+            const taskA = AppBoot.task("A", () => {
+            });
+            const taskB = AppBoot.task("B", () => {
+            }, [taskA]);
 
             boot.add(taskA);
 
-            let taskBState: BootTaskState | undefined
+            let taskBState: BootTaskState | undefined;
             const processListener = jest.fn((process => {
                 taskBState = process.getStateOf(taskB);
             }) as TProcessEventListener);
-            boot.addEventListener('process', processListener);
+            boot.addEventListener("process", processListener);
 
             // Act -----------------
             await boot.runAsync();
@@ -567,28 +651,31 @@ describe("AppBoot", () => {
             expect(taskBState).toBe(BootTaskState.Unknown);
         });
 
-        test('listener.process.remove', async () => {
+        test("listener.process.remove", async () => {
             // Arrange ---------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
+            const taskA = AppBoot.task("A", () => {
+            });
             boot.add(taskA);
 
             const processListener = jest.fn();
-            boot.addEventListener('process', processListener);
+            boot.addEventListener("process", processListener);
 
             // Act -------------
-            boot.removeEventListener('process', processListener);
+            boot.removeEventListener("process", processListener);
             await boot.runAsync();
 
             // Assert ----------
             expect(processListener).not.toHaveBeenCalled();
-        })
+        });
 
-        test('listener.finish', async () => {
+        test("listener.finish", async () => {
             // Arrange --------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
-            const taskB = AppBoot.task("B", () => {}, [ taskA ]);
+            const taskA = AppBoot.task("A", () => {
+            });
+            const taskB = AppBoot.task("B", () => {
+            }, [taskA]);
             boot.add([taskA, taskB]);
 
             let finishListenerData: TFinishEventData | undefined;
@@ -601,7 +688,7 @@ describe("AppBoot", () => {
             const result = await boot.runAsync();
 
             // Assert ---------
-            expect(finishListenerData).not.toBeUndefined()
+            expect(finishListenerData).not.toBeUndefined();
             expect(finishListenerData?.type).toBe("finish");
             expect(finishListenerData?.result).toBe(result);
         });
@@ -609,7 +696,8 @@ describe("AppBoot", () => {
         test("listener.finish.remove", async () => {
             // Arrange --------
             const boot = new AppBoot();
-            const taskA = AppBoot.task("A", () => {});
+            const taskA = AppBoot.task("A", () => {
+            });
             boot.add(taskA);
 
             const finishListener = jest.fn();
@@ -622,9 +710,47 @@ describe("AppBoot", () => {
             // Assert ---------
             expect(finishListener).not.toHaveBeenCalled();
         });
+
+        test("dispose.beforeRun", () => {
+            // Arrange ---------
+            const boot = new AppBoot();
+
+            // Assert -------------
+            expect(() => boot.dispose()).not.toThrow();
+        });
+
+        test("dispose.twice", () => {
+            // Arrange ---------
+            const boot = new AppBoot();
+            boot.dispose();
+
+            // Assert ----------
+            expect(() => boot.dispose()).not.toThrow();
+        });
+
+        test("dispose.whenRunning", async () => {
+            // Arrange ---------
+            const boot = new AppBoot();
+            const promise = boot.runAsync();
+
+            // Act -------------
+            let error: Error | null = null;
+            try {
+                boot.dispose();
+            } catch (e) {
+                if (e instanceof Error)
+                    error = e;
+            }
+
+            const result = await promise;
+
+            // Assert -----------
+            expect(error).not.toBeNull();
+            expect(result).not.toBeFalsy();
+        });
     });
 
-    test('run.largeGraph', async () => {
+    test("run.largeGraph", async () => {
         // [A] (B) (C) [D] <E>
         //  |   | \ | /  \ / \
         // <F> (G) [H]   [I] |
@@ -634,27 +760,44 @@ describe("AppBoot", () => {
         //         [N]   [O]
 
         // Arrange --------------
-        const taskA = AppBoot.task("A", () => {});
-        const taskB = AppBoot.task("B", () => {}, null, true);
-        const taskC = AppBoot.task("C", () => {}, null, true);
-        const taskD = AppBoot.task("D", () => {});
-        const taskE = AppBoot.task("E", () => { throw Error() }, null, true);
-        const taskF = AppBoot.task("F", () => { throw Error() }, [taskA], true);
-        const taskG = AppBoot.task("G", () => {}, [taskB], true);
-        const taskH = AppBoot.task("H", () => {}, [taskB, taskC, taskD]);
-        const taskI = AppBoot.task("I", () => {}, [taskD, {task: taskE, optional: true}]);
-        const taskJ = AppBoot.task("J", () => {}, [taskF]);
-        const taskK = AppBoot.task("K", () => {}, [{task: taskF, optional: true}, taskG]);
-        const taskL = AppBoot.task("L", () => {}, [taskH, taskI]);
-        const taskM = AppBoot.task("M", () => {}, [taskE]);
-        const taskN = AppBoot.task("N", () => {}, [taskK, taskH, taskL]);
-        const taskO = AppBoot.task("O", () => {}, [taskL, taskM]);
+        const taskA = AppBoot.task("A", () => {
+        });
+        const taskB = AppBoot.task("B", () => {
+        }, null, true);
+        const taskC = AppBoot.task("C", () => {
+        }, null, true);
+        const taskD = AppBoot.task("D", () => {
+        });
+        const taskE = AppBoot.task("E", () => {
+            throw Error();
+        }, null, true);
+        const taskF = AppBoot.task("F", () => {
+            throw Error();
+        }, [taskA], true);
+        const taskG = AppBoot.task("G", () => {
+        }, [taskB], true);
+        const taskH = AppBoot.task("H", () => {
+        }, [taskB, taskC, taskD]);
+        const taskI = AppBoot.task("I", () => {
+        }, [taskD, { task: taskE, optional: true }]);
+        const taskJ = AppBoot.task("J", () => {
+        }, [taskF]);
+        const taskK = AppBoot.task("K", () => {
+        }, [{ task: taskF, optional: true }, taskG]);
+        const taskL = AppBoot.task("L", () => {
+        }, [taskH, taskI]);
+        const taskM = AppBoot.task("M", () => {
+        }, [taskE]);
+        const taskN = AppBoot.task("N", () => {
+        }, [taskK, taskH, taskL]);
+        const taskO = AppBoot.task("O", () => {
+        }, [taskL, taskM], true);
 
         const boot = new AppBoot()
             .add([taskI, taskJ, taskK, taskL])
             .add([taskE, taskF, taskG, taskH])
             .add([taskA, taskB, taskC, taskD])
-            .add([taskM, taskN, taskO])
+            .add([taskM, taskN, taskO]);
 
         // Act ------------
         const result = await boot.runAsync();
@@ -662,27 +805,27 @@ describe("AppBoot", () => {
         boot.dispose();
 
         // Assert ---------
-        expect(result).not.toBeNull()
+        expect(result).not.toBeNull();
 
         // Success
-        expect(result.success).toContain(taskA)
-        expect(result.success).toContain(taskB)
-        expect(result.success).toContain(taskC)
-        expect(result.success).toContain(taskD)
-        expect(result.success).toContain(taskG)
-        expect(result.success).toContain(taskH)
-        expect(result.success).toContain(taskI)
-        expect(result.success).toContain(taskK)
-        expect(result.success).toContain(taskL)
-        expect(result.success).toContain(taskN)
+        expect(result.success).toContain(taskA);
+        expect(result.success).toContain(taskB);
+        expect(result.success).toContain(taskC);
+        expect(result.success).toContain(taskD);
+        expect(result.success).toContain(taskG);
+        expect(result.success).toContain(taskH);
+        expect(result.success).toContain(taskI);
+        expect(result.success).toContain(taskK);
+        expect(result.success).toContain(taskL);
+        expect(result.success).toContain(taskN);
 
         // Failure
-        expect(result.failure).toContain(taskE)
-        expect(result.failure).toContain(taskF)
+        expect(result.failure).toContain(taskE);
+        expect(result.failure).toContain(taskF);
 
         // Skipped
-        expect(result.skipped).toContain(taskJ)
-        expect(result.skipped).toContain(taskM)
-        expect(result.skipped).toContain(taskO)
+        expect(result.skipped).toContain(taskJ);
+        expect(result.skipped).toContain(taskM);
+        expect(result.skipped).toContain(taskO);
     });
 });
