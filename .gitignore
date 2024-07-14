@@ -26,3 +26,9 @@ yarn-error.log*
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Rollup bondler cache
+.rollup.cache/
+
+# Build output folder
+build/
