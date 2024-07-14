@@ -1,0 +1,62 @@
+{
+  "name": "@spirex/js-boot",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": false,
+  "description": "Efficient JavaScript app initialization library with staged execution and dependency management",
+  "keywords": [
+    "javascript",
+    "typescript",
+    "initializer",
+    "initialization",
+    "app init",
+    "application bootstrapping",
+    "task managment",
+    "async tasks",
+    "event loop",
+    "nodejs",
+    "browser"
+  ],
+  "author": {
+    "name": "Artem Sobolenkov (SpireX)",
+    "email": "SpireX@outlook.com",
+    "url": "https://github.com/SpireX64"
+  },
+  "types": "index.d.ts",
+  "main": "./build/index.js",
+  "module": "./build/index.mjs",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.mjs"
+      },
+      "require": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.cjs"
+      },
+      "default": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rollup --config --environment NODE_ENV:development",
+    "build:release": "rollup --config --environment NODE_ENV:production",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "*",
+    "prettier": "*",
+    "typescript": "*",
+    "eslint": "*",
+    "rollup": "*",
+    "rollup-plugin-terser": "*",
+    "@rollup/plugin-typescript": "*",
+    "jest": "*",
+    "tslib": "*",
+    "ts-jest": "*"
+  }
+}
