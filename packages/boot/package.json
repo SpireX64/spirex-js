@@ -22,22 +22,27 @@
     "email": "SpireX@outlook.com",
     "url": "https://github.com/SpireX64"
   },
-  "types": "index.d.ts",
-  "main": "./build/index.js",
-  "module": "./build/index.mjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SpireX64/spirex-js",
+    "directory": "packages/boot"
+  },
+  "types": "./build/AppBoot.d.ts",
+  "main": "./build/AppBoot.js",
+  "module": "./build/AppBoot.mjs",
   "exports": {
     ".": {
       "import": {
-        "types": "./build/index.d.ts",
-        "default": "./build/index.mjs"
+        "types": "./build/AppBoot.d.ts",
+        "default": "./build/AppBoot.mjs"
       },
       "require": {
-        "types": "./build/index.d.ts",
-        "default": "./build/index.cjs"
+        "types": "./build/AppBoot.d.ts",
+        "default": "./build/AppBoot.cjs"
       },
       "default": {
-        "types": "./build/index.d.ts",
-        "default": "./build/index.js"
+        "types": "./build/AppBoot.d.ts",
+        "default": "./build/AppBoot.js"
       }
     }
   },
