@@ -4,6 +4,7 @@
   "devDependencies": {
     "@types/jest": "*",
     "prettier": "*",
+    "tslib": "*",
     "eslint": "*",
     "rollup": "*",
     "rollup-plugin-terser": "*",

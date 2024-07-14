@@ -4,3 +4,4 @@
 |----------------------------|---------------------------------------------------|
 | `@spirex/js-exception`     | Extendable exception class for Browser and NodeJS |
 | `@spirex/js-event-emitter` | A library for event handling                      |
+| `@spirex/js-boot`          | JS application bootstrapper                       | 

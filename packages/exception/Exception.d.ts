@@ -1,3 +1,7 @@
+// Package: @spirex/js-exception
+// Copyright 2024 (c) Artem Sobolenkov
+// https://github.com/spirex64/spirex-js
+
 /** An exception class that allows inheritance for defining its own exception types. */
 export declare class Exception extends Error {
     /**
