@@ -1,4 +1,8 @@
-// noinspection JSUnusedGlobalSymbols
+// Package: @spirex/js-exception
+// Copyright 2024 (c) Artem Sobolenkov
+// https://github.com/spirex64/spirex-js
+
+// @ts-nocheck
 export function Exception(message, cause) {
     const error = Error.apply(this, [message, cause])
 

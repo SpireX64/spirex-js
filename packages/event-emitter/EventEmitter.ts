@@ -1,3 +1,7 @@
+// Package: @spirex/js-event-emitter
+// Copyright 2024 (c) Artem Sobolenkov
+// https://github.com/spirex64
+
 export type EventListenerDisposable<Event> = {
     readonly event: Event;
     readonly dispose: () => void;
