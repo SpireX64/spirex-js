@@ -6,7 +6,7 @@
 export type TBootTaskFunctionSync = () => void;
 
 /** Synchronous boot task's function */
-export type TBootTaskFunctionAsync = () => Promise<void>
+export type TBootTaskFunctionAsync = () => Promise<void>;
 
 /** Boot task's function */
 export type TBootTaskFunction = TBootTaskFunctionSync | TBootTaskFunctionAsync;
@@ -29,7 +29,7 @@ export type TBootTaskDependency = {
 
     /** Completion the task is optional */
     readonly optional?: boolean;
-}
+};
 
 /** Data of process event */
 export type TProcessEventData = Readonly<{
@@ -69,7 +69,7 @@ export type TAppBootResult = Readonly<{
     skipped: readonly IBootTask[];
     /** List of tasks that were not included in the execution graph */
     unreachable: readonly IBootTask[];
-}>
+}>;
 
 export enum BootTaskState {
     /** The task is not controlled by a process */
@@ -96,7 +96,7 @@ type TBootGraphNode = {
     children: TBootGraphNode[];
     /** Current task state */
     state: BootTaskState;
-}
+};
 
 /** Object for tracking dependent tasks */
 type TBootGraphNodeAwaiter = {
@@ -104,7 +104,7 @@ type TBootGraphNodeAwaiter = {
     readonly node: TBootGraphNode;
     /** List of dependent tasks */
     wait: TBootGraphNode[];
-}
+};
 
 enum AppBootStatus {
     /** Waiting for process to start */
@@ -122,8 +122,10 @@ enum AppBootStatus {
 }
 
 const ERR_BOOT_STARTED = "Boot process already started";
-const ERR_ADD_TASKS_AFTER_START = "Attempt to add task after start boot process";
-const ERR_HAS_IMPORTANT_UNREACHABLE_TASK = "Attempt to add task after start boot process";
+const ERR_ADD_TASKS_AFTER_START =
+    "Attempt to add task after start boot process";
+const ERR_HAS_IMPORTANT_UNREACHABLE_TASK =
+    "Attempt to add task after start boot process";
 
 export class AppBoot {
     // region: Task factory
@@ -136,9 +138,9 @@ export class AppBoot {
      */
     public static task(
         func: TBootTaskFunction,
-        deps?: (readonly (TBootTaskDependency | IBootTask)[]) | null | undefined,
+        deps?: readonly (TBootTaskDependency | IBootTask)[] | null | undefined,
         optional?: boolean,
-    ): IBootTask
+    ): IBootTask;
 
     /**
      * Factory method of boot task with explicit name
@@ -151,14 +153,22 @@ export class AppBoot {
     public static task(
         name: string,
         func: TBootTaskFunction,
-        deps?: (readonly (TBootTaskDependency | IBootTask)[]) | null | undefined,
+        deps?: readonly (TBootTaskDependency | IBootTask)[] | null | undefined,
         optional?: boolean,
-    ): IBootTask
+    ): IBootTask;
 
     public static task(
         nameOrFunc: string | TBootTaskFunction,
-        funcOrDeps?: TBootTaskFunction | readonly(TBootTaskDependency | IBootTask)[] | null | undefined,
-        depsOrOptional?: (readonly (TBootTaskDependency | IBootTask)[]) | boolean | null | undefined,
+        funcOrDeps?:
+            | TBootTaskFunction
+            | readonly (TBootTaskDependency | IBootTask)[]
+            | null
+            | undefined,
+        depsOrOptional?:
+            | readonly (TBootTaskDependency | IBootTask)[]
+            | boolean
+            | null
+            | undefined,
         optional?: boolean,
     ): IBootTask {
         let name: string;
@@ -178,10 +188,8 @@ export class AppBoot {
             isOptional = Boolean(depsOrOptional || optional);
         }
 
-        const dependsOn = dependencies?.map(it =>
-            "run" in it
-                ? { task: it } as TBootTaskDependency
-                : it,
+        const dependsOn = dependencies?.map((it) =>
+            "run" in it ? ({ task: it } as TBootTaskDependency) : it,
         );
 
         return { name, run: func, dependsOn, optional: isOptional };
@@ -203,7 +211,7 @@ export class AppBoot {
     /** Current status of the process */
     private _status: AppBootStatus = AppBootStatus.Idle;
     /** Link to active promise */
-    private _activeProcessPromise: Promise<unknown> | null = null;
+    private _activeProcessPromise: Promise<any> | null = null;
 
     /** List of tasks waiting to run */
     private _awaiters: TBootGraphNodeAwaiter[] = [];
@@ -227,51 +235,83 @@ export class AppBoot {
      * @throws Error when process already started
      */
     public add(tasks: readonly IBootTask[] | false | null | undefined): AppBoot;
-    public add(oneOrManyTasks: IBootTask | readonly IBootTask[] | false | null | undefined): AppBoot {
+    public add(
+        oneOrManyTasks:
+            | IBootTask
+            | readonly IBootTask[]
+            | false
+            | null
+            | undefined,
+    ): AppBoot {
         if (this._status !== AppBootStatus.Idle)
             throw Error(ERR_ADD_TASKS_AFTER_START);
 
         if (!!oneOrManyTasks) {
             if (Array.isArray(oneOrManyTasks))
-                oneOrManyTasks.forEach(task => this.addTaskToGraph(task));
-            else
-                this.addTaskToGraph(oneOrManyTasks as IBootTask);
+                oneOrManyTasks.forEach((task) => this.addTaskToGraph(task));
+            else this.addTaskToGraph(oneOrManyTasks as IBootTask);
         }
         return this;
     }
 
     /** Checks if a task has been added to the process */
     public has(task: IBootTask): boolean {
-        return this._nodes.some(it => it.task === task)
-            || this._unreachableNodes.some(it => it!.task === task);
+        return (
+            this._nodes.some((it) => it.task === task) ||
+            this._unreachableNodes.some((it) => it!.task === task)
+        );
     }
 
     /** Checks if all {@link task} dependencies have been added to the process. */
     public isTaskReachable(task: IBootTask): boolean {
-        return this._nodes.some(it => it.task === task);
+        return this._nodes.some((it) => it.task === task);
     }
 
     /** Add a process event listener */
-    public addEventListener(type: "process", listener: TProcessEventListener): AppBoot;
+    public addEventListener(
+        type: "process",
+        listener: TProcessEventListener,
+    ): AppBoot;
 
     /** Add a finish event listener */
-    public addEventListener(type: "finish", listener: TFinishEventListener): AppBoot;
+    public addEventListener(
+        type: "finish",
+        listener: TFinishEventListener,
+    ): AppBoot;
 
-    public addEventListener(type: "process" | "finish", listener: TProcessEventListener | TFinishEventListener): AppBoot {
-        if (type === "process") this._processEventListeners.add(listener as TProcessEventListener);
-        else if (type === "finish") this._finishEventListeners.add(listener as TFinishEventListener);
+    public addEventListener(
+        type: "process" | "finish",
+        listener: TProcessEventListener | TFinishEventListener,
+    ): AppBoot {
+        if (type === "process")
+            this._processEventListeners.add(listener as TProcessEventListener);
+        else if (type === "finish")
+            this._finishEventListeners.add(listener as TFinishEventListener);
         return this;
     }
 
     /** Remove a process event listener */
-    public removeEventListener(type: "process", listener: TProcessEventListener): AppBoot;
+    public removeEventListener(
+        type: "process",
+        listener: TProcessEventListener,
+    ): AppBoot;
 
     /** Remove a finish event listener */
-    public removeEventListener(type: "finish", listener: TFinishEventListener): AppBoot;
+    public removeEventListener(
+        type: "finish",
+        listener: TFinishEventListener,
+    ): AppBoot;
 
-    public removeEventListener(type: "process" | "finish", listener: TProcessEventListener | TFinishEventListener): AppBoot {
-        if (type === "process") this._processEventListeners.delete(listener as TProcessEventListener);
-        if (type === "finish") this._finishEventListeners.delete(listener as TFinishEventListener);
+    public removeEventListener(
+        type: "process" | "finish",
+        listener: TProcessEventListener | TFinishEventListener,
+    ): AppBoot {
+        if (type === "process")
+            this._processEventListeners.delete(
+                listener as TProcessEventListener,
+            );
+        if (type === "finish")
+            this._finishEventListeners.delete(listener as TFinishEventListener);
         return this;
     }
 
@@ -291,21 +331,27 @@ export class AppBoot {
         this._status = AppBootStatus.Running;
         const promise = this.createPromiseResolver();
 
-        const rootTaskNodes = this._nodes.filter(node => node.depends.length === 0);
+        const rootTaskNodes = this._nodes.filter(
+            (node) => node.depends.length === 0,
+        );
         this.runTasks(rootTaskNodes);
 
         return promise;
     }
 
     private validateImportantUnreachableTasks(): void {
-        const tasks = this._unreachableNodes.filter(it => !it!.task.optional).map(it => it!.task);
+        const tasks = this._unreachableNodes
+            .filter((it) => !it!.task.optional)
+            .map((it) => it!.task);
         if (tasks.length === 0) return;
 
-        throw Error(`${ERR_HAS_IMPORTANT_UNREACHABLE_TASK} (${tasks.map(it => it.name).join(", ")})`);
+        throw Error(
+            `${ERR_HAS_IMPORTANT_UNREACHABLE_TASK} (${tasks.map((it) => it.name).join(", ")})`,
+        );
     }
 
     private emitProcessEvent(task: IBootTask): void {
-        this._processEventListeners.forEach(listener => {
+        this._processEventListeners.forEach((listener) => {
             listener({
                 type: "process",
                 task,
@@ -317,7 +363,10 @@ export class AppBoot {
     }
 
     private getTaskState(task: IBootTask): BootTaskState {
-        return this._nodes.find(node => node.task === task)?.state ?? BootTaskState.Unknown;
+        return (
+            this._nodes.find((node) => node.task === task)?.state ??
+            BootTaskState.Unknown
+        );
     }
 
     private createPromiseResolver(): Promise<TAppBootResult> {
@@ -329,15 +378,24 @@ export class AppBoot {
 
     private addTaskToGraph(task: IBootTask): void {
         Object.freeze(task);
-        const node: TBootGraphNode = { task, state: BootTaskState.Idle, depends: [], children: [] };
+        const node: TBootGraphNode = {
+            task,
+            state: BootTaskState.Idle,
+            depends: [],
+            children: [],
+        };
 
         let isUnreachable = false;
         const dependencies = task.dependsOn ?? [];
         for (let i = 0; i < dependencies.length; ++i) {
             const dependencyTask = dependencies[i];
-            let dependencyNode = this._nodes.find(it => it.task === dependencyTask.task);
+            let dependencyNode = this._nodes.find(
+                (it) => it.task === dependencyTask.task,
+            );
             if (!dependencyNode)
-                dependencyNode = this._unreachableNodes.find(it => it!.task === dependencyTask.task);
+                dependencyNode = this._unreachableNodes.find(
+                    (it) => it!.task === dependencyTask.task,
+                );
 
             if (dependencyNode) {
                 node.depends.push(dependencyNode);
@@ -354,13 +412,17 @@ export class AppBoot {
             // istanbul ignore next
             if (!unreachableNode) continue;
 
-            const dependencyMatch = unreachableNode.task.dependsOn?.some(it => it.task === task);
+            const dependencyMatch = unreachableNode.task.dependsOn?.some(
+                (it) => it.task === task,
+            );
             if (!dependencyMatch) continue;
 
             unreachableNode.depends.push(node);
             node.children.push(unreachableNode);
 
-            const pathResolved = unreachableNode.depends.length === unreachableNode.task.dependsOn?.length ?? 0;
+            const pathResolved =
+                unreachableNode.depends.length ===
+                    unreachableNode.task.dependsOn?.length ?? 0;
             if (pathResolved) {
                 this._nodes.push(unreachableNode);
                 this._unreachableNodes[i] = undefined;
@@ -377,18 +439,23 @@ export class AppBoot {
     private prepareAwaiters(nodes: readonly TBootGraphNode[]): void {
         for (let i = 0; i < nodes.length; ++i) {
             const node = nodes[i];
-            if (this._awaiters.find(it => it.node === node)) continue;
+            if (this._awaiters.find((it) => it.node === node)) continue;
 
             if (this._completedNodes.length > 0) {
-                const skip = node.task.dependsOn?.some(depTask => {
+                const skip = node.task.dependsOn?.some((depTask) => {
                     const state = this.getTaskState(depTask.task);
-                    return state === BootTaskState.Skipped || state === BootTaskState.Failure;
+                    return (
+                        state === BootTaskState.Skipped ||
+                        state === BootTaskState.Failure
+                    );
                 });
 
                 if (skip) {
                     // istanbul ignore next
                     if (!node.task.optional) {
-                        this.fail(`Mandatory task ${node.task.name} was skipped`);
+                        this.fail(
+                            `Mandatory task ${node.task.name} was skipped`,
+                        );
                         return;
                     }
                     node.state = BootTaskState.Skipped;
@@ -414,9 +481,12 @@ export class AppBoot {
             for (let depIndex = 0; depIndex < awaiter.wait.length; ++depIndex) {
                 const dependency = awaiter.wait[depIndex];
                 if (dependency.state === BootTaskState.Success) continue;
-                if (dependency.state === BootTaskState.Failure || dependency.state === BootTaskState.Skipped) {
+                if (
+                    dependency.state === BootTaskState.Failure ||
+                    dependency.state === BootTaskState.Skipped
+                ) {
                     const taskDependency = awaiter.node.task.dependsOn?.find(
-                        it => it.task === dependency.task,
+                        (it) => it.task === dependency.task,
                     );
                     if (taskDependency && !taskDependency.optional) {
                         skip = true;
@@ -446,10 +516,15 @@ export class AppBoot {
                 const node = this._nodes[i];
                 if (node.state !== BootTaskState.Idle) continue;
 
-                const skip = node.task.optional && node.task.dependsOn?.some(depTask => {
-                    const state = this.getTaskState(depTask.task);
-                    return state === BootTaskState.Skipped || state === BootTaskState.Failure;
-                });
+                const skip =
+                    node.task.optional &&
+                    node.task.dependsOn?.some((depTask) => {
+                        const state = this.getTaskState(depTask.task);
+                        return (
+                            state === BootTaskState.Skipped ||
+                            state === BootTaskState.Failure
+                        );
+                    });
 
                 if (skip) {
                     node.state = BootTaskState.Skipped;
@@ -477,21 +552,23 @@ export class AppBoot {
         this._status = AppBootStatus.Done;
         const result: TAppBootResult = {
             success: this._completedNodes
-                .filter(it => it.state === BootTaskState.Success)
-                .map(it => it.task),
+                .filter((it) => it.state === BootTaskState.Success)
+                .map((it) => it.task),
             failure: this._completedNodes
-                .filter(it => it.state === BootTaskState.Failure)
-                .map(it => it.task),
+                .filter((it) => it.state === BootTaskState.Failure)
+                .map((it) => it.task),
             skipped: this._completedNodes
-                .filter(it => it.state === BootTaskState.Skipped)
-                .map(it => it.task),
-            unreachable: this._unreachableNodes.map(it => it!.task),
+                .filter((it) => it.state === BootTaskState.Skipped)
+                .map((it) => it.task),
+            unreachable: this._unreachableNodes.map((it) => it!.task),
         };
 
-        this._finishEventListeners.forEach(listener => listener({
-            type: "finish",
-            result,
-        }));
+        this._finishEventListeners.forEach((listener) =>
+            listener({
+                type: "finish",
+                result,
+            }),
+        );
 
         // NOTE: Promise isn't null after run
         // istanbul ignore next
@@ -502,14 +579,20 @@ export class AppBoot {
         this._status = AppBootStatus.Failed;
 
         // Mark uncompleted tasks as skipped
-        this._nodes.forEach(it => {
-            if (it.state !== BootTaskState.Idle && it.state !== BootTaskState.Running) return;
+        this._nodes.forEach((it) => {
+            if (
+                it.state !== BootTaskState.Idle &&
+                it.state !== BootTaskState.Running
+            )
+                return;
             it.state = BootTaskState.Skipped;
             this._completedNodes.push(it);
         });
         // NOTE: Promise isn't null after run
         // istanbul ignore next
-        this._promiseReject?.(Error(cause ? `${message} (cause: ${cause.message})` : message));
+        this._promiseReject?.(
+            Error(cause ? `${message} (cause: ${cause.message})` : message),
+        );
     }
 
     private runTasks(nodes: readonly TBootGraphNode[]): void {
@@ -519,7 +602,8 @@ export class AppBoot {
             this.finish();
             return;
         }
-        this._activeProcessPromise = Promise.all(nodes.map(async node => {
+
+        const promises = nodes.map(async (node) => {
             node.state = BootTaskState.Running;
             this.prepareAwaiters(node.children);
             try {
@@ -541,7 +625,13 @@ export class AppBoot {
                 }
             }
             this.processAwaiters();
-        }));
+        });
+
+        // Don't forget to await previous tasks
+        if (this._activeProcessPromise)
+            promises.push(this._activeProcessPromise);
+
+        this._activeProcessPromise = Promise.all(promises);
     }
 
     /**
@@ -551,8 +641,13 @@ export class AppBoot {
      */
     public dispose(): void {
         if (this._status === AppBootStatus.Disposed) return;
-        if (this._status === AppBootStatus.Running || this._status === AppBootStatus.Finalizing)
-            throw Error("Attempt to dispose the initializer while it's running.");
+        if (
+            this._status === AppBootStatus.Running ||
+            this._status === AppBootStatus.Finalizing
+        )
+            throw Error(
+                "Attempt to dispose the initializer while it's running.",
+            );
 
         // After this line, it's not possible to use an initializer.
         this._status = AppBootStatus.Disposed;
