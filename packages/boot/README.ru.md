@@ -1,8 +1,10 @@
 # Инициализатор JavaScript приложений
-[![GitHub License](https://img.shields.io/github/license/spirex64/spirex-js?style=for-the-badge)](./LICENSE)
+[![GitHub License](https://img.shields.io/github/license/spirex64/spirex-js?style=for-the-badge)](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/LICENSE)
 [![npm version](https://img.shields.io/npm/v/@spirex/js-boot.svg?style=for-the-badge)](https://www.npmjs.com/package/@spirex/js-boot)
-[![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.npmjs.com/package/@spirex/js-boot)
+[![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
+[**ИСТОРИЯ ИЗМЕНЕНИЙ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.md) ●
+[**СПРАВОЧНИК**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/REFERENCE.md)
 
 ## Описание
 
