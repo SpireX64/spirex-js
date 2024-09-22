@@ -89,6 +89,16 @@ export enum BootTaskState {
     Skipped = "Skipped",
 }
 
+export namespace BootTaskState {
+    export function isCompleted(state: BootTaskState) {
+        return (
+            state === BootTaskState.Success ||
+            state === BootTaskState.Failure ||
+            state === BootTaskState.Skipped
+        );
+    }
+}
+
 /** Task node in the boot graph */
 type TBootGraphNode = {
     /** Task reference */
@@ -218,10 +228,33 @@ export class AppBoot {
     private _awaiters: TBootGraphNodeAwaiter[] = [];
     /** List of task nodes that have completed their execution */
     private _completedNodes: TBootGraphNode[] = [];
+    /** List of parents */
+    private readonly _parents: AppBoot[] | null = null;
 
     /** Total count of tasks added to the process */
     public get tasksCount(): number {
         return this._nodes.length + this._unreachableNodes.length;
+    }
+
+    public constructor(...parents: AppBoot[]) {
+        if (parents.length > 0) {
+            this._parents = parents;
+            this._nodes = parents.flatMap((parent) =>
+                this.copyParentNodes(parent._nodes),
+            );
+            this._completedNodes = this._nodes.filter((it) =>
+                BootTaskState.isCompleted(it.state),
+            );
+        }
+    }
+
+    /**
+     * Checks current instance is child of another process
+     * @param other - another process reference
+     * @returns true, when this instance is child of other process
+     */
+    public isChildOf(other: AppBoot): boolean {
+        return this._parents?.includes(other) === true;
     }
 
     /**
@@ -331,13 +364,24 @@ export class AppBoot {
 
         this._status = AppBootStatus.Running;
         const promise = this.createPromiseResolver();
-
         const rootTaskNodes = this._nodes.filter(
             (node) => node.depends.length === 0,
         );
         this.runTasks(rootTaskNodes);
-
         return promise;
+    }
+
+    private copyParentNodes(
+        parentNodes: readonly (TBootGraphNode | TNullable)[],
+    ) {
+        return parentNodes.reduce<TBootGraphNode[]>((nodes, node) => {
+            if (node)
+                nodes.push({
+                    ...node,
+                    children: Array.from(node.children),
+                });
+            return nodes;
+        }, []);
     }
 
     private validateImportantUnreachableTasks(): void {
@@ -377,26 +421,24 @@ export class AppBoot {
         });
     }
 
-    private addTaskToGraph(task: IBootTask): void {
-        Object.freeze(task);
-        const node: TBootGraphNode = {
-            task,
-            state: BootTaskState.Idle,
-            depends: [],
-            children: [],
-        };
-
+    private resolveNodeDependencies(node: TBootGraphNode): boolean {
         let isUnreachable = false;
+        const { task } = node;
         const dependencies = task.dependsOn ?? [];
-        for (let i = 0; i < dependencies.length; ++i) {
+        for (let i = 0; i < dependencies.length; i++) {
             const dependencyTask = dependencies[i];
-            let dependencyNode = this._nodes.find(
-                (it) => it.task === dependencyTask.task,
+
+            // Search in graph
+            let dependencyNode: TBootGraphNode | TNullable = this._nodes.find(
+                (it) => it!.task === dependencyTask.task,
             );
-            if (!dependencyNode)
+
+            if (!dependencyNode) {
+                // Search in unreachable tasks list
                 dependencyNode = this._unreachableNodes.find(
                     (it) => it!.task === dependencyTask.task,
                 );
+            }
 
             if (dependencyNode) {
                 node.depends.push(dependencyNode);
@@ -405,7 +447,10 @@ export class AppBoot {
                 isUnreachable = true;
             }
         }
+        return isUnreachable;
+    }
 
+    private resolveNodeChildren(node: TBootGraphNode) {
         let someChildResolved = false;
         for (let i = this._unreachableNodes.length - 1; i >= 0; --i) {
             let unreachableNode = this._unreachableNodes[i];
@@ -414,7 +459,7 @@ export class AppBoot {
             if (!unreachableNode) continue;
 
             const dependencyMatch = unreachableNode.task.dependsOn?.some(
-                (it) => it.task === task,
+                (it) => it.task === node.task,
             );
             if (!dependencyMatch) continue;
 
@@ -432,9 +477,22 @@ export class AppBoot {
         }
         if (someChildResolved)
             this._unreachableNodes = this._unreachableNodes.filter(Boolean);
+    }
 
-        if (isUnreachable) this._unreachableNodes.push(node);
+    private addTaskToGraph(task: IBootTask): void {
+        Object.freeze(task);
+        const node: TBootGraphNode = {
+            task,
+            state: BootTaskState.Idle,
+            depends: [],
+            children: [],
+        };
+
+        if (this.resolveNodeDependencies(node))
+            this._unreachableNodes.push(node);
         else this._nodes.push(node);
+
+        this.resolveNodeChildren(node);
     }
 
     private prepareAwaiters(nodes: readonly TBootGraphNode[]): void {
@@ -605,24 +663,26 @@ export class AppBoot {
         }
 
         const promises = nodes.map(async (node) => {
-            node.state = BootTaskState.Running;
             this.prepareAwaiters(node.children);
-            try {
-                await node.task.run();
-                node.state = BootTaskState.Success;
-                this._completedNodes.push(node);
-                this.emitProcessEvent(node.task);
-            } catch (err) {
-                node.state = BootTaskState.Failure;
-                if (node.task.optional) {
+            if (!BootTaskState.isCompleted(node.state)) {
+                node.state = BootTaskState.Running;
+                try {
+                    await node.task.run();
+                    node.state = BootTaskState.Success;
                     this._completedNodes.push(node);
                     this.emitProcessEvent(node.task);
-                } else {
-                    this.fail(
-                        `The important task "${node.task.name}" was failed`,
-                        err instanceof Error ? err : Error(String(err)),
-                    );
-                    return;
+                } catch (err) {
+                    node.state = BootTaskState.Failure;
+                    if (node.task.optional) {
+                        this._completedNodes.push(node);
+                        this.emitProcessEvent(node.task);
+                    } else {
+                        this.fail(
+                            `The important task "${node.task.name}" was failed`,
+                            err instanceof Error ? err : Error(String(err)),
+                        );
+                        return;
+                    }
                 }
             }
             this.processAwaiters();
