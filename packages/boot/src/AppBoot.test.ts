@@ -879,6 +879,23 @@ describe("AppBoot", () => {
             expect(child.has(parentTaskB)).toBeTruthy();
         });
 
+        test("Inheritance with disposed parent", () => {
+            // Arrange ------
+            const parent = new AppBoot();
+            parent.dispose();
+
+            // Act ----------
+            let error: Error | null = null;
+            try {
+                new AppBoot(parent);
+            } catch (e) {
+                if (e instanceof Error) error = e;
+            }
+
+            // Assert -------
+            expect(error).not.toBeNull();
+        });
+
         test("Run parent's task", async () => {
             // Arrange -------
             const parentTaskFunc = jest.fn();
@@ -898,7 +915,7 @@ describe("AppBoot", () => {
             expect(childTaskFunc).toHaveBeenCalledTimes(1);
         });
 
-        test("Tasks state inheritance from parent", async () => {
+        test("Tasks state inheritance from parent on create", async () => {
             // Arrange -------
             const parentTaskFunc = jest.fn();
             const parentTask = AppBoot.task(parentTaskFunc);
@@ -915,8 +932,72 @@ describe("AppBoot", () => {
             await child.runAsync();
 
             // Assert --------
-            expect(parentTaskFunc).toHaveBeenCalledTimes(0); // Not called in child
+            expect(parentTaskFunc).toHaveBeenCalledTimes(0); // Was not called by child
             expect(childTaskFunc).toHaveBeenCalledTimes(1);
+        });
+
+        test("Sync tasks states with parents", async () => {
+            // Arrange -----------
+            const parentTaskFunc = jest.fn();
+            const parentTask = AppBoot.task(parentTaskFunc);
+            const parent = new AppBoot().add(parentTask);
+
+            const childTaskFunc = jest.fn();
+            const childTask = AppBoot.task(childTaskFunc, [parentTask]);
+            const child = new AppBoot(parent).add(childTask);
+
+            // Act ----------------
+            await parent.runAsync();
+            parentTaskFunc.mockClear(); // Clear calls counter
+
+            await child.runAsync({ syncWithParents: true });
+
+            // Assert -------------
+            expect(parentTaskFunc).toHaveBeenCalledTimes(0); // Was not called by child
+            expect(childTaskFunc).toHaveBeenCalledTimes(1); // Called by child
+        });
+
+        test("Sync with disposed parent", async () => {
+            // Arrange -----------
+            const parentTaskFunc = jest.fn();
+            const parentTask = AppBoot.task(parentTaskFunc);
+            const parent = new AppBoot().add(parentTask);
+
+            const childTaskFunc = jest.fn();
+            const childTask = AppBoot.task(childTaskFunc, [parentTask]);
+            const child = new AppBoot(parent).add(childTask);
+
+            // Act ----------------
+            await parent.runAsync({ disposeOnFinish: true });
+
+            let error: Error | null = null;
+            try {
+                await child.runAsync({ syncWithParents: true });
+            } catch (e) {
+                if (e instanceof Error) error = e;
+            }
+
+            // Assert -------------
+            expect(error).not.toBeNull();
+        });
+
+        test("Child will process parents tasks without sync", async () => {
+            // Arrange -----------
+            const parentTaskFunc = jest.fn();
+            const parentTask = AppBoot.task(parentTaskFunc);
+            const parent = new AppBoot().add(parentTask);
+
+            const childTaskFunc = jest.fn();
+            const childTask = AppBoot.task(childTaskFunc, [parentTask]);
+            const child = new AppBoot(parent).add(childTask);
+
+            // Act ----------------
+            await parent.runAsync();
+            await child.runAsync();
+
+            // Assert -------------
+            expect(parentTaskFunc).toHaveBeenCalledTimes(2); // Called by parent & child
+            expect(childTaskFunc).toHaveBeenCalledTimes(1); // Called by child
         });
     });
 });

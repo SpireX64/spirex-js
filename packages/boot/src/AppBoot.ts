@@ -28,8 +28,11 @@ export interface IBootTask {
 
 /** Running process options */
 export type TRunningOptions = {
-    /** Auth-call dispose method on process finish */
+    /** Auto-dispose on process finish */
     disposeOnFinish?: boolean;
+
+    /** Sync tasks statuses with parents */
+    syncWithParents?: boolean;
 };
 
 export type TBootTaskDependency = {
@@ -377,11 +380,36 @@ export class AppBoot {
         this._runningOptions = options;
         this._status = AppBootStatus.Running;
         const promise = this.createPromiseResolver();
+
+        if (this._runningOptions?.syncWithParents)
+            this.syncTasksStatusesWithParents();
+
         const rootTaskNodes = this._nodes.filter(
             (node) => node.depends.length === 0,
         );
         this.runTasks(rootTaskNodes);
         return promise;
+    }
+
+    private validateParentsState(): void {
+        this._parents?.forEach((parent) => {
+            if (parent.isDisposed) throw Error("Parent was disposed.");
+        });
+    }
+
+    private syncTasksStatusesWithParents() {
+        if (!this._parents?.length) return;
+
+        this.validateParentsState();
+
+        this._parents
+            .flatMap((parent) => this.copyParentNodes(parent._nodes))
+            .forEach((parentNode) => {
+                const node = this._nodes.find(
+                    (it) => it.task === parentNode.task,
+                );
+                if (node) node.state = parentNode.state;
+            });
     }
 
     private copyParentNodes(
