@@ -2,6 +2,8 @@
 // Copyright 2024 (c) Artem Sobolenkov
 // https://github.com/spirex64
 
+// region: Types definitions
+
 /** Asynchronous boot task's function  */
 export type TBootTaskFunctionSync = () => void;
 
@@ -143,14 +145,23 @@ enum AppBootStatus {
     Disposed,
 }
 
+// endregion: Types definitions
+
+// region: Error messages
+
 const ERR_BOOT_STARTED = "Boot process already started";
 const ERR_ADD_TASKS_AFTER_START =
     "Attempt to add task after start boot process";
 const ERR_HAS_IMPORTANT_UNREACHABLE_TASK =
     "Attempt to add task after start boot process";
+const ERR_DISPOSE_WHILE_RUNNING = "Attempt to dispose the initializer while it's running"
+const ERR_PARENT_WAS_DISPOSED = "Parent was disposed."
+
+// endregion: Error messages
 
 export class AppBoot {
     // region: Task factory
+
     /**
      * Factory method of boot task
      * @param func - task function
@@ -217,6 +228,8 @@ export class AppBoot {
 
     // endregion: Task factory
 
+    // region: Fields
+
     private _processEventListeners = new Set<TProcessEventListener>();
     private _finishEventListeners = new Set<TFinishEventListener>();
 
@@ -242,6 +255,10 @@ export class AppBoot {
     /** Running options */
     private _runningOptions: TRunningOptions | TNullable = null;
 
+    // endregion: Fields
+
+    // region: Properties
+
     /** Total count of tasks added to the process */
     public get tasksCount(): number {
         return this._nodes.length + this._unreachableNodes.length;
@@ -250,6 +267,8 @@ export class AppBoot {
     public get isDisposed(): boolean {
         return this._status === AppBootStatus.Disposed;
     }
+
+    // endregion: Properties
 
     public constructor(...parents: AppBoot[]) {
         if (parents.length > 0) {
@@ -262,6 +281,8 @@ export class AppBoot {
             );
         }
     }
+
+    // region: Public methods
 
     /**
      * Checks current instance is child of another process
@@ -391,9 +412,48 @@ export class AppBoot {
         return promise;
     }
 
+    /**
+     * Cleans up resources used by a process.
+     * Use this method after the process has completed to reduce the application's memory consumption.
+     * @throws Error when trying to free resources while it's running
+     */
+    public dispose(): void {
+        if (this._status === AppBootStatus.Disposed) return;
+        if (
+            this._status === AppBootStatus.Running ||
+            this._status === AppBootStatus.Finalizing
+        )
+            throw Error(ERR_DISPOSE_WHILE_RUNNING);
+
+        // After this line, it's not possible to use an initializer.
+        this._status = AppBootStatus.Disposed;
+
+        this._processEventListeners.clear();
+        // @ts-ignore
+        delete this._processEventListeners;
+        this._finishEventListeners.clear();
+        // @ts-ignore
+        delete this._finishEventListeners;
+        // @ts-ignore
+        delete this._awaiters;
+        // @ts-ignore
+        delete this._nodes;
+        // @ts-ignore
+        delete this._unreachableNodes;
+        // @ts-ignore
+        delete this._completedNodes;
+        this._activeProcessPromise = null;
+        this._promiseResolve = null;
+        this._promiseReject = null;
+    }
+
+    // endregion: Public methods
+
+    // region: Private methods
+
     private validateParentsState(): void {
         this._parents?.forEach((parent) => {
-            if (parent.isDisposed) throw Error("Parent was disposed.");
+            if (parent.isDisposed) throw Error(ERR_PARENT_WAS_DISPOSED);
         });
     }
 
@@ -739,40 +799,5 @@ export class AppBoot {
         this._activeProcessPromise = Promise.all(promises);
     }
 
-    /**
-     * Cleans up resources used by a process.
-     * Use this method after the process has completed to reduce the application's memory consumption.
-     * @throws Error when trying to free resources while it's running
-     */
-    public dispose(): void {
-        if (this._status === AppBootStatus.Disposed) return;
-        if (
-            this._status === AppBootStatus.Running ||
-            this._status === AppBootStatus.Finalizing
-        )
-            throw Error(
-                "Attempt to dispose the initializer while it's running.",
-            );
-
-        // After this line, it's not possible to use an initializer.
-        this._status = AppBootStatus.Disposed;
-
-        this._processEventListeners.clear();
-        // @ts-ignore
-        delete this._processEventListeners;
-        this._finishEventListeners.clear();
-        // @ts-ignore
-        delete this._finishEventListeners;
-        // @ts-ignore
-        delete this._awaiters;
-        // @ts-ignore
-        delete this._nodes;
-        // @ts-ignore
-        delete this._unreachableNodes;
-        // @ts-ignore
-        delete this._completedNodes;
-        this._activeProcessPromise = null;
-        this._promiseResolve = null;
-        this._promiseReject = null;
-    }
+    // endregion: Private methods
 }
