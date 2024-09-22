@@ -11,6 +11,9 @@ export type TBootTaskFunctionAsync = () => Promise<void>;
 /** Boot task's function */
 export type TBootTaskFunction = TBootTaskFunctionSync | TBootTaskFunctionAsync;
 
+/** Nullable union type */
+export type TNullable = null | undefined;
+
 /** Boot task definition type */
 export interface IBootTask {
     /** Task name */
@@ -162,13 +165,11 @@ export class AppBoot {
         funcOrDeps?:
             | TBootTaskFunction
             | readonly (TBootTaskDependency | IBootTask)[]
-            | null
-            | undefined,
+            | TNullable,
         depsOrOptional?:
             | readonly (TBootTaskDependency | IBootTask)[]
             | boolean
-            | null
-            | undefined,
+            | TNullable,
         optional?: boolean,
     ): IBootTask {
         let name: string;
@@ -206,7 +207,7 @@ export class AppBoot {
     /** List of all nodes of execution graph */
     private _nodes: TBootGraphNode[] = [];
     /** List of nodes not included in the execution graph */
-    private _unreachableNodes: (TBootGraphNode | undefined)[] = [];
+    private _unreachableNodes: (TBootGraphNode | TNullable)[] = [];
 
     /** Current status of the process */
     private _status: AppBootStatus = AppBootStatus.Idle;
