@@ -3,15 +3,17 @@
 ## 1.0.1 (2024-09-XX)
 
 ### Features
-- Поддержка наследования экземпляров процессов
+- Support for AppBoot instance inheritance
+- Automatic resource release after completion
+- Task status synchronization with parent processes
 
 ### Fixes
-- Расширение предыдущего промиса, вместо замены.
+- Extend the previous promise instead of replacing it.
 
 ### Documentation
-- Дополнена информация о пакете в package.json
-- Добавлен файл "CHANGELOG.md" для истории версий
-- Поправлены ссылки в "README.md"
+- Added more information about the package in package.json
+- Added a "CHANGELOG.md" file for version history
+- Fixed links in "README.md"
 
 ## 1.0.0 (2024-07-14)
-- Первый релиз пакета
+- Initial release of the package

@@ -3,7 +3,8 @@
 [![npm version](https://img.shields.io/npm/v/@spirex/js-boot.svg?style=for-the-badge)](https://www.npmjs.com/package/@spirex/js-boot)
 [![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
-[**ИСТОРИЯ ИЗМЕНЕНИЙ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.md) ●
+[**ИСТОРИЯ ИЗМЕНЕНИЙ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.ru.md) ●
+[**ДОКУМЕНТАЦИЯ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/README.md) ●
 [**СПРАВОЧНИК**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/REFERENCE.md)
 
 ## Описание
