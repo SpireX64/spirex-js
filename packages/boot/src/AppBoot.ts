@@ -26,6 +26,12 @@ export interface IBootTask {
     readonly run: TBootTaskFunction;
 }
 
+/** Running process options */
+export type TRunningOptions = {
+    /** Auth-call dispose method on process finish */
+    disposeOnFinish?: boolean;
+};
+
 export type TBootTaskDependency = {
     /** Task reference */
     readonly task: IBootTask;
@@ -230,10 +236,16 @@ export class AppBoot {
     private _completedNodes: TBootGraphNode[] = [];
     /** List of parents */
     private readonly _parents: AppBoot[] | null = null;
+    /** Running options */
+    private _runningOptions: TRunningOptions | TNullable = null;
 
     /** Total count of tasks added to the process */
     public get tasksCount(): number {
         return this._nodes.length + this._unreachableNodes.length;
+    }
+
+    public get isDisposed(): boolean {
+        return this._status === AppBootStatus.Disposed;
     }
 
     public constructor(...parents: AppBoot[]) {
@@ -356,12 +368,13 @@ export class AppBoot {
      * @throws Error if not possible to construct the path to perform important task
      * @returns the result of executing tasks
      */
-    public runAsync(): Promise<TAppBootResult> {
+    public runAsync(options?: TRunningOptions): Promise<TAppBootResult> {
         if (this._status !== AppBootStatus.Idle)
             return Promise.reject(Error(ERR_BOOT_STARTED));
 
         this.validateImportantUnreachableTasks();
 
+        this._runningOptions = options;
         this._status = AppBootStatus.Running;
         const promise = this.createPromiseResolver();
         const rootTaskNodes = this._nodes.filter(
@@ -632,6 +645,9 @@ export class AppBoot {
         // NOTE: Promise isn't null after run
         // istanbul ignore next
         this._promiseResolve?.(result);
+
+        // Auto-dispose after process finish
+        if (this._runningOptions?.disposeOnFinish) this.dispose();
     }
 
     private fail(message: string, cause?: Error): void {

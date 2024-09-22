@@ -714,6 +714,7 @@ describe("AppBoot", () => {
 
             // Assert -------------
             expect(() => boot.dispose()).not.toThrow();
+            expect(boot.isDisposed).toBeTruthy();
         });
 
         test("dispose.twice", () => {
@@ -723,6 +724,7 @@ describe("AppBoot", () => {
 
             // Assert ----------
             expect(() => boot.dispose()).not.toThrow();
+            expect(boot.isDisposed).toBeTruthy();
         });
 
         test("dispose.whenRunning", async () => {
@@ -743,6 +745,18 @@ describe("AppBoot", () => {
             // Assert -----------
             expect(error).not.toBeNull();
             expect(result).not.toBeFalsy();
+            expect(boot.isDisposed).toBeFalsy();
+        });
+
+        test("dispose.auto", async () => {
+            // Arrange -----------
+            const boot = new AppBoot();
+
+            // Act ---------------
+            await boot.runAsync({ disposeOnFinish: true });
+
+            // Assert ------------
+            expect(boot.isDisposed).toBeTruthy();
         });
     });
 
