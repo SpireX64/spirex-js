@@ -1,5 +1,5 @@
 {
-  "name": "@spirex/js-event-emitter",
+  "name": "@spirex/js-emitters",
   "version": "1.0.0",
   "devDependencies": {
     "@types/jest": "*",
