@@ -1,0 +1,37 @@
+{
+  "name": "@spirex/js-utils",
+  "version": "0.0.1",
+  "license": "MIT",
+  "private": false,
+  "description": "Pack of small utils",
+  "keywords": [],
+  "author": {
+    "name": "Artem Sobolenkov (SpireX)",
+    "email": "SpireX@outlook.com",
+    "url": "https://github.com/SpireX64"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SpireX64/spirex-js",
+    "directory": "packages/utils"
+  },
+  "scripts": {
+    "build": "rollup --config --environment NODE_ENV:development",
+    "build:release": "rollup --config --environment NODE_ENV:production",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "*",
+    "prettier": "*",
+    "typescript": "*",
+    "eslint": "*",
+    "rollup": "*",
+    "rollup-plugin-terser": "*",
+    "@rollup/plugin-typescript": "*",
+    "jest": "*",
+    "glob": "10.4.5",
+    "tslib": "*",
+    "ts-jest": "*"
+  }
+}
