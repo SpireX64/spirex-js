@@ -6,19 +6,27 @@ export interface ISignal<T> {
     off(listener: TSignalListenerFunction<T>): void;
 }
 
-export type TSignalListenerDisposable<T> = Readonly<{
-    signal: ISignal<T>;
-    dispose: () => boolean;
-}>;
+export type TSignalListenerDisposable<T> = {
+    signal?: ISignal<T>;
+    dispose: () => void;
+};
 
-export class SignalSource<T> implements ISignal<T> {
+export class SignalSource<T = unknown> implements ISignal<T> {
     private _state: T | null = null;
     private readonly _listeners = new Set<TSignalListenerFunction<T>>();
 
-    private constructor(initialValue: T | null = null) {
+    public constructor(initialValue: T | null = null) {
         if (initialValue != null) {
             this._state = initialValue;
         }
+    }
+
+    public get listenersCount(): number {
+        return this._listeners.size;
+    }
+
+    public get state(): T | null {
+        return this._state;
     }
 
     public on(
@@ -28,22 +36,30 @@ export class SignalSource<T> implements ISignal<T> {
         if (this._state !== null) listener(this._state);
         return {
             signal: this,
-            dispose: () => this.off(listener),
+            dispose() {
+                this.signal?.off(listener);
+                delete this.signal;
+            },
         };
     }
 
     public once(
         listener: TSignalListenerFunction<T>,
     ): TSignalListenerDisposable<T> {
+        let disposable: TSignalListenerDisposable<T>;
         const wrapperListener = (args: T) => {
-            this.off(listener);
+            disposable.dispose();
             listener(args);
         };
-        this._listeners.add(wrapperListener);
-        return {
+        disposable = {
             signal: this,
-            dispose: () => this.off(listener),
+            dispose() {
+                this.signal?.off(wrapperListener);
+                delete this.signal;
+            },
         };
+        this._listeners.add(wrapperListener);
+        return disposable;
     }
 
     public off(listener: "*"): boolean;
