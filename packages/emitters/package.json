@@ -1,6 +1,10 @@
 {
   "name": "@spirex/js-emitters",
   "version": "1.0.0",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
   "devDependencies": {
     "@types/jest": "*",
     "prettier": "*",

@@ -1,10 +1,10 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-    displayName: "@spirex/js-mitters",
+    displayName: "@spirex/js-emitters",
     preset: "ts-jest",
     testEnvironment: "node",
     clearMocks: true,
-    coverageDirectory: "<rootDir>/../coverage",
+    coverageDirectory: "<rootDir>/coverage",
     coveragePathIgnorePatterns: [
         "<rootDir>/build/",
         "<rootDir>/node_modules/",
