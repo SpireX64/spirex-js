@@ -1,24 +1,23 @@
+import type { IListenerDisposable } from "./ListenerDisposable";
+
 export type TSignalListenerFunction<T> = (signalArgs: T) => void;
 
 export interface ISignal<T> {
-    on(listener: TSignalListenerFunction<T>): TSignalListenerDisposable<T>;
-    once(listener: TSignalListenerFunction<T>): TSignalListenerDisposable<T>;
+    on(listener: TSignalListenerFunction<T>): ISignalListenerDisposable<T>;
+    once(listener: TSignalListenerFunction<T>): ISignalListenerDisposable<T>;
     off(listener: TSignalListenerFunction<T>): void;
 }
 
-export type TSignalListenerDisposable<T> = {
+export interface ISignalListenerDisposable<T> extends IListenerDisposable {
     signal?: ISignal<T>;
-    dispose: () => void;
-};
+}
 
-export class SignalSource<T = unknown> implements ISignal<T> {
+export class Signal<T = unknown> implements ISignal<T> {
     private _state: T | null = null;
     private readonly _listeners = new Set<TSignalListenerFunction<T>>();
 
     public constructor(initialValue: T | null = null) {
-        if (initialValue != null) {
-            this._state = initialValue;
-        }
+        if (initialValue != null) this._state = initialValue;
     }
 
     public get listenersCount(): number {
@@ -31,7 +30,7 @@ export class SignalSource<T = unknown> implements ISignal<T> {
 
     public on(
         listener: TSignalListenerFunction<T>,
-    ): TSignalListenerDisposable<T> {
+    ): ISignalListenerDisposable<T> {
         this._listeners.add(listener);
         if (this._state !== null) listener(this._state);
         return {
@@ -45,8 +44,8 @@ export class SignalSource<T = unknown> implements ISignal<T> {
 
     public once(
         listener: TSignalListenerFunction<T>,
-    ): TSignalListenerDisposable<T> {
-        let disposable: TSignalListenerDisposable<T>;
+    ): ISignalListenerDisposable<T> {
+        let disposable: ISignalListenerDisposable<T>;
         const wrapperListener = (args: T) => {
             disposable.dispose();
             listener(args);

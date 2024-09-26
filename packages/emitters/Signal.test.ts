@@ -1,9 +1,9 @@
-import { SignalSource } from "./Signal";
+import { Signal } from "./Signal";
 
 describe("Signal", () => {
     test("New instance", () => {
         // Act --------
-        const signal = new SignalSource();
+        const signal = new Signal();
 
         // Assert -----
         expect(signal.listenersCount).toBe(0);
@@ -13,7 +13,7 @@ describe("Signal", () => {
     test("Emit & Listen signal", () => {
         // Arrange --------
         const expectedValues = [11, 42];
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listener = jest.fn();
 
@@ -32,7 +32,7 @@ describe("Signal", () => {
     test("Listen signal once", () => {
         // Arrange ---------
         const values = [11, 42];
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listener = jest.fn();
 
@@ -50,7 +50,7 @@ describe("Signal", () => {
     test("Add many listeners", () => {
         // Arrange ----------
         const expectedValue = 1;
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listenerA = jest.fn();
         const listenerB = jest.fn();
@@ -71,7 +71,7 @@ describe("Signal", () => {
     test("Add listener twice", () => {
         // Arrange ---------
         const expectedValue = 11;
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listener = jest.fn();
         signal.on(listener);
@@ -89,7 +89,7 @@ describe("Signal", () => {
     test("Remove listener", () => {
         // Arrange ------
         const expectedValue = 42;
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listenerA = jest.fn();
         const listenerB = jest.fn();
@@ -108,7 +108,7 @@ describe("Signal", () => {
     test("Remove all listeners", () => {
         // Arrange ------
         const expectedValue = 42;
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listenerA = jest.fn();
         signal.on(listenerA);
@@ -127,7 +127,7 @@ describe("Signal", () => {
 
     test("Disposable object", () => {
         // Arrange -----------
-        const signal = new SignalSource();
+        const signal = new Signal();
         const listener = jest.fn();
 
         // Act ---------------
@@ -141,7 +141,7 @@ describe("Signal", () => {
     test("Dispose listener", () => {
         // Arrange -----
         const expectedValues = [11, 42];
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listener = jest.fn();
         const disposable = signal.on(listener);
@@ -161,7 +161,7 @@ describe("Signal", () => {
     test("Dispose 'once' listener", () => {
         // Arrange -----
         const expectedValue = 42;
-        const signal = new SignalSource<number>();
+        const signal = new Signal<number>();
 
         const listener = jest.fn();
         const disposable = signal.once(listener);
@@ -178,7 +178,7 @@ describe("Signal", () => {
 
     test("Dispose listener twice", () => {
         // Arrange ----------
-        const signal = new SignalSource();
+        const signal = new Signal();
         const listener = jest.fn();
         const disposable = signal.on(listener);
 
@@ -193,7 +193,7 @@ describe("Signal", () => {
 
     test("Dispose 'once' listener twice", () => {
         // Arrange ----------
-        const signal = new SignalSource();
+        const signal = new Signal();
         const listener = jest.fn();
         const disposable = signal.once(listener);
 
@@ -211,7 +211,7 @@ describe("Signal", () => {
         const expectedState = 42;
 
         // Act ---------------
-        const signal = new SignalSource<number>(expectedState);
+        const signal = new Signal<number>(expectedState);
 
         // Assert ------------
         expect(signal.state).toBe(expectedState);
@@ -220,7 +220,7 @@ describe("Signal", () => {
     test("Emit new state", () => {
         // Arrange ----------
         const expectedState = 42;
-        const signal = new SignalSource<number>(0);
+        const signal = new Signal<number>(0);
 
         // Act --------------
         signal.emit(expectedState, true);
@@ -232,7 +232,7 @@ describe("Signal", () => {
     test("Receive state on listen", () => {
         // Arrange ----------
         const expectedValue = 42;
-        const signal = new SignalSource<number>(expectedValue);
+        const signal = new Signal<number>(expectedValue);
         const listener = jest.fn();
 
         // Act --------------
@@ -246,7 +246,7 @@ describe("Signal", () => {
     test("Do not receive state on listen once", () => {
         // Arrange ----------
         const expectedValue = 42;
-        const signal = new SignalSource<number>(expectedValue);
+        const signal = new Signal<number>(expectedValue);
         const listener = jest.fn();
 
         // Act --------------
@@ -259,7 +259,7 @@ describe("Signal", () => {
     test("Receive last state on listen", () => {
         // Arrange --------
         const expectedValue = 42;
-        const signal = new SignalSource<number>(11);
+        const signal = new Signal<number>(11);
         const listener = jest.fn();
 
         // Act ------------

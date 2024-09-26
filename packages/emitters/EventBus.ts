@@ -2,10 +2,11 @@
 // Copyright 2024 (c) Artem Sobolenkov
 // https://github.com/spirex64
 
-export type EventListenerDisposable<Event> = {
+import type { IListenerDisposable } from "./ListenerDisposable";
+
+export interface IEventListenerDisposable<Event> extends IListenerDisposable {
     readonly event: Event;
-    readonly dispose: () => void;
-};
+}
 
 type AnyEvent = "*";
 const ANY_EVENT_KEY: AnyEvent = "*";
@@ -29,14 +30,14 @@ export class EventBus<T extends object = Record<string, unknown>> {
 
     public any(
         listener: EventListenerFunction<T, keyof T>,
-    ): EventListenerDisposable<AnyEvent> {
+    ): IEventListenerDisposable<AnyEvent> {
         return this.add(ANY_EVENT_KEY, listener);
     }
 
     public on(
         event: keyof T,
         listener: EventListenerFunction<T, typeof event>,
-    ): EventListenerDisposable<typeof event> {
+    ): IEventListenerDisposable<typeof event> {
         this.add(event, listener);
         const state = this._state?.get(event);
         if (state) listener(state as any, event);
@@ -46,7 +47,7 @@ export class EventBus<T extends object = Record<string, unknown>> {
     public once(
         event: keyof T,
         listener: EventListenerFunction<T, typeof event>,
-    ): EventListenerDisposable<typeof event> {
+    ): IEventListenerDisposable<typeof event> {
         const wrappedListener: EventListenerFunction<T, typeof event> = (
             eventArgs,
             event,
@@ -89,7 +90,7 @@ export class EventBus<T extends object = Record<string, unknown>> {
     private add<TKey extends keyof T | AnyEvent>(
         event: TKey,
         listener: EventListenerFunction<T, any>,
-    ): EventListenerDisposable<TKey> {
+    ): IEventListenerDisposable<TKey> {
         if (this._listenersMap.has(event))
             this._listenersMap.get(event)?.add(listener);
         else
