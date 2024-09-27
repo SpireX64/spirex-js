@@ -14,4 +14,14 @@ describe("Boot", () => {
             expect(task.delegate).toBe(taskDelegate);
         });
     });
+
+    describe("Creating instance of boot process", () => {
+        test("Create new instance of 'Boot'", () => {
+            // Act -----------
+            const boot = new Boot();
+
+            // Assert --------
+            expect(boot).toBeInstanceOf(Boot);
+        });
+    });
 });
