@@ -15,13 +15,28 @@ describe("Boot", () => {
             expect(task.dependencies).toHaveLength(0);
         });
 
-        test("Create a simple task with dependencies", () => {
+        test("Create a simple task with dependencies as param", () => {
             // Arrange ------
             const taskA = Boot.task(() => {});
             const taskB = Boot.task(() => {});
 
             // Act ----------
             const task = Boot.task(() => {}, [taskA, taskB]);
+
+            // Assert ------
+            expect(task.dependencies).toContain(taskA);
+            expect(task.dependencies).toContain(taskB);
+        });
+
+        test("Create a simple task with dependencies in options", () => {
+            // Arrange ------
+            const taskA = Boot.task(() => {});
+            const taskB = Boot.task(() => {});
+
+            // Act ----------
+            const task = Boot.task(() => {}, {
+                dependencies: [taskA, taskB],
+            });
 
             // Assert ------
             expect(task.dependencies).toContain(taskA);

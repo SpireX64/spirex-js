@@ -27,20 +27,53 @@ export type TBootTask = {
     dependencies: readonly TBootTask[];
 };
 
+export type TBootTaskOptions = {
+    dependencies?: readonly TBootTask[];
+};
+
 export class Boot {
     // region: STATIC METHODS
+
+    /**
+     * Creates a boot task with optional configuration options.
+     * @param delegate - The delegate function to be executed by task,
+     *                   which can be synchronous or asynchronous.
+     * @param options - Optional task configuration, including task dependencies.
+     * @returns The created boot task.
+     */
+    public static task(
+        delegate: TBootTaskDelegate,
+        options?: TBootTaskOptions | TNullable,
+    ): TBootTask;
 
     /**
      * Creates a boot task with an optional list of dependencies.
      * @param delegate - The delegate function to be executed by task,
      *                   which can be synchronous or asynchronous.
      * @param dependencies - An optional list of tasks that this task depends on.
-     * @returns The created boot task
+     * @returns The created boot task.
      */
     public static task(
         delegate: TBootTaskDelegate,
-        dependencies?: readonly TBootTask[],
+        dependencies?: readonly TBootTask[] | TNullable,
+    ): TBootTask;
+
+    public static task(
+        delegate: TBootTaskDelegate,
+        optionsOrDependencies?:
+            | TBootTaskOptions
+            | readonly TBootTask[]
+            | TNullable,
     ): TBootTask {
+        let dependencies: readonly TBootTask[] | undefined;
+        if (optionsOrDependencies) {
+            if (Array.isArray(optionsOrDependencies)) {
+                dependencies = optionsOrDependencies;
+            } else if (optionsOrDependencies) {
+                dependencies = (optionsOrDependencies as TBootTaskOptions)
+                    .dependencies;
+            }
+        }
         return {
             delegate,
             dependencies: dependencies ?? [],
