@@ -135,6 +135,10 @@ export class Boot {
         return this;
     }
 
+    public async runAsync(): Promise<boolean> {
+        return true;
+    }
+
     // endregion: PUBLIC METHODS
 
     // region: PRIVATE METHODS

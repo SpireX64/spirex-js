@@ -199,4 +199,17 @@ describe("Boot", () => {
             },
         );
     });
+
+    describe("Process execution", () => {
+        test("Running empty boot process", async () => {
+            // Arrange -------------
+            const boot = new Boot();
+
+            // Act -----------------
+            const result = await boot.runAsync();
+
+            // Assert --------------
+            expect(result).toBeTruthy();
+        });
+    });
 });
