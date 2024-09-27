@@ -1,4 +1,10 @@
+/** A union type representing either `null` or `undefined` */
 export type TNullable = null | undefined;
+
+/**
+ * A union type representing values interpreted as `false` in boolean contexts.
+ * These include `null`, `undefined`, `false`, and `0`.
+ */
 export type TFalsy = TNullable | false | 0;
 
 export type TBootTaskSyncDelegate = () => void;
