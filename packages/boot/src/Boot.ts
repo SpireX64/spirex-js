@@ -7,8 +7,19 @@ export type TNullable = null | undefined;
  */
 export type TFalsy = TNullable | false | 0;
 
+/**
+ * A delegate function representing a synchronous boot task.
+ * This function performs an operation without returning a Promise.
+ */
 export type TBootTaskSyncDelegate = () => void;
+
+/**
+ * A delegate function representing an asynchronous boot task.
+ * This function returns a Promise, signaling when the task is complete.
+ */
 export type TBootTaskAsyncDelegate = () => Promise<void>;
+
+/** A union of synchronous and asynchronous boot task delegate functions. */
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
 export type TBootTask = {
