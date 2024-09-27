@@ -23,11 +23,13 @@ export type TBootTaskAsyncDelegate = () => Promise<void>;
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
 export type TBootTask = {
+    name: string;
     delegate: TBootTaskDelegate;
     dependencies: readonly TBootTask[];
 };
 
 export type TBootTaskOptions = {
+    name?: string;
     dependencies?: readonly TBootTask[];
 };
 
@@ -65,17 +67,20 @@ export class Boot {
             | readonly TBootTask[]
             | TNullable,
     ): TBootTask {
-        let dependencies: readonly TBootTask[] | undefined;
+        let dependencies: readonly TBootTask[] | TNullable;
+        let options: TBootTaskOptions | TNullable;
         if (optionsOrDependencies) {
             if (Array.isArray(optionsOrDependencies)) {
                 dependencies = optionsOrDependencies;
-            } else if (optionsOrDependencies) {
-                dependencies = (optionsOrDependencies as TBootTaskOptions)
-                    .dependencies;
+            } else {
+                options = optionsOrDependencies as TBootTaskOptions;
+                dependencies = options.dependencies;
             }
         }
+
         return {
             delegate,
+            name: options?.name || delegate.name,
             dependencies: dependencies ?? [],
         };
     }

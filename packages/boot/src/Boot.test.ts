@@ -42,6 +42,28 @@ describe("Boot", () => {
             expect(task.dependencies).toContain(taskA);
             expect(task.dependencies).toContain(taskB);
         });
+
+        test("Create a task with name", () => {
+            // Arrange ------
+            const expectedName = "MyTask";
+
+            // Act ----------
+            const task = Boot.task(() => {}, { name: expectedName });
+
+            // Assert --------
+            expect(task.name).toBe(expectedName);
+        });
+
+        test("Create a task with name from delegate function", () => {
+            // Arrange ------
+            function init() {}
+
+            // Act -----------
+            const task = Boot.task(init);
+
+            // Assert --------
+            expect(task.name).toBe(init.name);
+        });
     });
 
     describe("Creating instance of boot process", () => {
