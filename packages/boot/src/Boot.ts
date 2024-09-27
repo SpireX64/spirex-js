@@ -33,6 +33,25 @@ export type TBootTaskOptions = {
     dependencies?: readonly TBootTask[];
 };
 
+/**
+ * Representing the possible states of the boot process.
+ * @enum {number}
+ */
+export enum BootState {
+    /** The boot process is idle and not currently running. */
+    Idle,
+    /** The boot process is currently running. */
+    Running,
+    /** The boot process has completed. */
+    Done,
+}
+
+const ERR_BOOT_STARTED = "Boot process already started";
+
+function isPromise(obj: any): obj is Promise<any> {
+    return obj != null && typeof obj === "object" && "then" in obj;
+}
+
 export class Boot {
     // region: STATIC METHODS
 
@@ -89,7 +108,10 @@ export class Boot {
 
     // region: FIELDS
 
+    /** @internal */
     private readonly _tasks: TBootTask[] = [];
+    /** @internal */
+    private _state: BootState = BootState.Idle;
 
     // endregion: FIELDS
 
@@ -98,6 +120,14 @@ export class Boot {
     /** Retrieves the number of process tasks. */
     public get tasksCount(): number {
         return this._tasks.length;
+    }
+
+    /**
+     * Gets the current state of the boot process.
+     * @see BootState
+     */
+    public get state(): BootState {
+        return this._state;
     }
 
     // endregion: PROPERTIES
@@ -136,9 +166,18 @@ export class Boot {
     }
 
     public async runAsync(): Promise<boolean> {
-        this._tasks.forEach((task) => {
-            task.delegate();
+        if (this._state !== BootState.Idle) {
+            throw new Error(ERR_BOOT_STARTED);
+        }
+        this._state = BootState.Running;
+        const tasksPromises = this._tasks.map(async (task) => {
+            const taskReturnValue = task.delegate();
+            if (isPromise(taskReturnValue)) {
+                await taskReturnValue;
+            }
         });
+        await Promise.all(tasksPromises);
+        this._state = BootState.Done;
         return true;
     }
 
@@ -146,6 +185,7 @@ export class Boot {
 
     // region: PRIVATE METHODS
 
+    /** @internal */
     private addTaskToProcess(task: TBootTask): void {
         if (!this._tasks.includes(task)) {
             this._tasks.push(task);

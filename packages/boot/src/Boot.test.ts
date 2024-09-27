@@ -1,4 +1,4 @@
-import { Boot, type TFalsy } from "./Boot";
+import { Boot, BootState, type TFalsy } from "./Boot";
 
 describe("Boot", () => {
     describe("Creating Tasks", () => {
@@ -84,6 +84,7 @@ describe("Boot", () => {
 
             // Assert --------
             expect(boot).toBeInstanceOf(Boot);
+            expect(boot.state).toBe(BootState.Idle);
         });
     });
 
@@ -210,6 +211,26 @@ describe("Boot", () => {
 
             // Assert --------------
             expect(result).toBeTruthy();
+            expect(boot.state).toBe(BootState.Done);
+        });
+
+        test("Running boot process twice", async () => {
+            // Arrange -------------
+            const boot = new Boot();
+            const promise = boot.runAsync();
+
+            // Act -----------------
+            let error: Error | null = null;
+            try {
+                await boot.runAsync();
+            } catch (e) {
+                if (e instanceof Error) error = e;
+            }
+            await promise;
+
+            // Assert --------------
+            expect(error).not.toBeNull();
+            expect(boot.state).toBe(BootState.Done);
         });
 
         test("Running boot process with one a sync task", async () => {
