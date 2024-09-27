@@ -29,6 +29,12 @@ export type TBootTask = {
 export class Boot {
     // region: STATIC METHODS
 
+    /**
+     * Creates a boot task with the provided delegate function.
+     * @param delegate - The delegate function to be executed by task,
+     *                   which can be synchronous or asynchronous.
+     * @returns The created boot task
+     */
     public static task(delegate: TBootTaskDelegate): TBootTask {
         return { delegate };
     }
@@ -43,6 +49,7 @@ export class Boot {
 
     // region: PROPERTIES
 
+    /** Retrieves the number of process tasks. */
     public get tasksCount(): number {
         return this._tasks.length;
     }
