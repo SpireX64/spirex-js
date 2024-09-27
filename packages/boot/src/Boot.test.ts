@@ -211,5 +211,57 @@ describe("Boot", () => {
             // Assert --------------
             expect(result).toBeTruthy();
         });
+
+        test("Running boot process with one a sync task", async () => {
+            // Arrange -------------
+            const syncTask = Boot.task(jest.fn());
+            const boot = new Boot().add(syncTask);
+
+            // Act -----------------
+            await boot.runAsync();
+
+            // Assert --------------
+            expect(syncTask.delegate).toHaveBeenCalled();
+        });
+
+        test("Running boot process with a couple of sync tasks", async () => {
+            // Arrange -------------
+            const syncTaskA = Boot.task(jest.fn());
+            const syncTaskB = Boot.task(jest.fn());
+            const boot = new Boot().add([syncTaskA, syncTaskB]);
+
+            // Act -----------------
+            await boot.runAsync();
+
+            // Assert --------------
+            expect(syncTaskA.delegate).toHaveBeenCalled();
+            expect(syncTaskB.delegate).toHaveBeenCalled();
+        });
+
+        test("Running boot process with one a async task", async () => {
+            // Arrange -------------
+            const syncTask = Boot.task(jest.fn(async () => {}));
+            const boot = new Boot().add(syncTask);
+
+            // Act -----------------
+            await boot.runAsync();
+
+            // Assert --------------
+            expect(syncTask.delegate).toHaveBeenCalled();
+        });
+
+        test("Running boot process with a couple of async tasks", async () => {
+            // Arrange -------------
+            const syncTaskA = Boot.task(jest.fn(async () => {}));
+            const syncTaskB = Boot.task(jest.fn(async () => {}));
+            const boot = new Boot().add([syncTaskA, syncTaskB]);
+
+            // Act -----------------
+            await boot.runAsync();
+
+            // Assert --------------
+            expect(syncTaskA.delegate).toHaveBeenCalled();
+            expect(syncTaskB.delegate).toHaveBeenCalled();
+        });
     });
 });

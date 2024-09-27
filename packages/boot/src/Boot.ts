@@ -136,6 +136,9 @@ export class Boot {
     }
 
     public async runAsync(): Promise<boolean> {
+        this._tasks.forEach((task) => {
+            task.delegate();
+        });
         return true;
     }
 
