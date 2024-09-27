@@ -58,8 +58,24 @@ export class Boot {
 
     // region: PUBLIC METHODS
 
+    /**
+     * Adds a single task to the boot process.
+     *
+     * If the provided value is {@link TFalsy}, it will be ignored.
+     * @param task - A boot task to be added, or a falsy value to be ignored.
+     * @returns The current instance of the boot process for method chaining.
+     */
     public add(task: TBootTask | TFalsy): Boot;
+
+    /**
+     * Adds an array of tasks to the boot process.
+     *
+     * Each task in the array can be either a boot task or a falsy value. Falsy values will be ignored.
+     * @param tasks - An array of boot tasks or falsy values.
+     * @returns The current instance of the boot process for method chaining.
+     */
     public add(tasks: readonly (TBootTask | TFalsy)[]): Boot;
+
     public add(
         taskOrTasks: TBootTask | readonly (TBootTask | TFalsy)[] | TFalsy,
     ): Boot {
