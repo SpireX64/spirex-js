@@ -79,5 +79,23 @@ describe("Boot", () => {
             // Assert ------------
             expect(boot.tasksCount).toBe(1);
         });
+
+        // GIVEN
+        //  - Two tasks are created
+        //  - Process is created
+        // WHEN: Add tasks to process in list
+        // THEN: Both tasks have been added to the process.
+        test("Adding multiple tasks in list to boot process", () => {
+            // Arrange -----------
+            const task1 = Boot.task(() => {});
+            const task2 = Boot.task(() => {});
+            const boot = new Boot();
+
+            // Act ---------------
+            boot.add([task1, task2]);
+
+            // Assert ------------
+            expect(boot.tasksCount).toBe(2);
+        });
     });
 });

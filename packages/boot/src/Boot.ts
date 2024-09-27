@@ -31,12 +31,26 @@ export class Boot {
 
     // region: PUBLIC METHODS
 
-    public add(task: TBootTask): Boot {
-        if (!this._tasks.includes(task)) {
-            this._tasks.push(task);
+    public add(task: TBootTask): Boot;
+    public add(tasks: readonly TBootTask[]): Boot;
+    public add(taskOrTasks: TBootTask | readonly TBootTask[]): Boot {
+        if (Array.isArray(taskOrTasks)) {
+            taskOrTasks.forEach((task) => this.addTaskToProcess(task));
+        } else {
+            this.addTaskToProcess(taskOrTasks as TBootTask);
         }
         return this;
     }
 
     // endregion: PUBLIC METHODS
+
+    // region: PRIVATE METHODS
+
+    private addTaskToProcess(task: TBootTask): void {
+        if (!this._tasks.includes(task)) {
+            this._tasks.push(task);
+        }
+    }
+
+    // endregion: PRIVATE METHODS
 }
