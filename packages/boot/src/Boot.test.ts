@@ -15,6 +15,17 @@ describe("Boot", () => {
             expect(task.dependencies).toHaveLength(0);
         });
 
+        test("Create a task with async delegate", () => {
+            // Arrange --------
+            const asyncDelegate = async () => {};
+
+            // Act ------------
+            const task = Boot.task(asyncDelegate);
+
+            // Arrange --------
+            expect(task.delegate).toBe(asyncDelegate);
+        });
+
         test("Create a simple task with dependencies as param", () => {
             // Arrange ------
             const taskA = Boot.task(() => {});
