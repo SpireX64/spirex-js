@@ -2,9 +2,9 @@ import { Boot, type TFalsy } from "./Boot";
 
 describe("Boot", () => {
     describe("Creating Tasks", () => {
-        test("Create simple task", () => {
+        test("Create a simple task without dependencies", () => {
             // Arrange -------
-            const taskDelegate = jest.fn();
+            const taskDelegate = () => {};
 
             // Act -----------
             const task = Boot.task(taskDelegate);
@@ -12,6 +12,20 @@ describe("Boot", () => {
             // Assert --------
             expect(task).not.toBeNull();
             expect(task.delegate).toBe(taskDelegate);
+            expect(task.dependencies).toHaveLength(0);
+        });
+
+        test("Create a simple task with dependencies", () => {
+            // Arrange ------
+            const taskA = Boot.task(() => {});
+            const taskB = Boot.task(() => {});
+
+            // Act ----------
+            const task = Boot.task(() => {}, [taskA, taskB]);
+
+            // Assert ------
+            expect(task.dependencies).toContain(taskA);
+            expect(task.dependencies).toContain(taskB);
         });
     });
 

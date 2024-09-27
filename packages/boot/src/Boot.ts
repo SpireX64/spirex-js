@@ -24,19 +24,27 @@ export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
 export type TBootTask = {
     delegate: TBootTaskDelegate;
+    dependencies: readonly TBootTask[];
 };
 
 export class Boot {
     // region: STATIC METHODS
 
     /**
-     * Creates a boot task with the provided delegate function.
+     * Creates a boot task with an optional list of dependencies.
      * @param delegate - The delegate function to be executed by task,
      *                   which can be synchronous or asynchronous.
+     * @param dependencies - An optional list of tasks that this task depends on.
      * @returns The created boot task
      */
-    public static task(delegate: TBootTaskDelegate): TBootTask {
-        return { delegate };
+    public static task(
+        delegate: TBootTaskDelegate,
+        dependencies?: readonly TBootTask[],
+    ): TBootTask {
+        return {
+            delegate,
+            dependencies: dependencies ?? [],
+        };
     }
 
     // endregion: STATIC METHODS
