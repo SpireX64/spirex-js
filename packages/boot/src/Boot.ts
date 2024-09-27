@@ -35,11 +35,13 @@ export class Boot {
     // region: PUBLIC METHODS
 
     public add(task: TBootTask | TFalsy): Boot;
-    public add(tasks: readonly TBootTask[]): Boot;
-    public add(taskOrTasks: TFalsy | TBootTask | readonly TBootTask[]): Boot {
+    public add(tasks: readonly (TBootTask | TFalsy)[]): Boot;
+    public add(
+        taskOrTasks: TBootTask | readonly (TBootTask | TFalsy)[] | TFalsy,
+    ): Boot {
         if (taskOrTasks) {
             if (Array.isArray(taskOrTasks)) {
-                taskOrTasks.forEach((task) => this.addTaskToProcess(task));
+                taskOrTasks.forEach((task) => this.add(task));
             } else {
                 this.addTaskToProcess(taskOrTasks as TBootTask);
             }

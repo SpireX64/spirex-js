@@ -114,5 +114,27 @@ describe("Boot", () => {
                 expect(boot.tasksCount).toBe(0);
             },
         );
+
+        // GIVEN
+        //  - Process is created
+        //  - One task is created
+        // WHEN: Trying to add falsy-value with task in list to process
+        // THEN
+        //  - Falsy-value was ignored
+        //  - The task was added to process
+        test.each([null, undefined, false, 0] as TFalsy[])(
+            "Trying to add falsy (%s) in list to boot process",
+            (falsy) => {
+                // Arrange -----------
+                const task = Boot.task(() => {});
+                const boot = new Boot();
+
+                // Act --------------
+                boot.add([falsy, task]);
+
+                // Assert -----------
+                expect(boot.tasksCount).toBe(1);
+            },
+        );
     });
 });
