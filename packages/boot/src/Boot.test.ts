@@ -1,4 +1,4 @@
-import { Boot } from "./Boot";
+import { Boot, type TFalsy } from "./Boot";
 
 describe("Boot", () => {
     describe("Creating Tasks", () => {
@@ -97,5 +97,22 @@ describe("Boot", () => {
             // Assert ------------
             expect(boot.tasksCount).toBe(2);
         });
+
+        // GIVEN: Process is created
+        // WHEN: Trying to add falsy-value to process
+        // THEN: Falsy-value was ignored
+        test.each([null, undefined, false, 0] as TFalsy[])(
+            "Trying to add falsy (%s) to boot process",
+            (falsy) => {
+                // Arrange -----------
+                const boot = new Boot();
+
+                // Act ---------------
+                boot.add(falsy);
+
+                // Assert ------------
+                expect(boot.tasksCount).toBe(0);
+            },
+        );
     });
 });

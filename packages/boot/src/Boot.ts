@@ -1,3 +1,6 @@
+export type TNullable = null | undefined;
+export type TFalsy = TNullable | false | 0;
+
 export type TBootTaskSyncDelegate = () => void;
 export type TBootTaskAsyncDelegate = () => Promise<void>;
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
@@ -31,13 +34,15 @@ export class Boot {
 
     // region: PUBLIC METHODS
 
-    public add(task: TBootTask): Boot;
+    public add(task: TBootTask | TFalsy): Boot;
     public add(tasks: readonly TBootTask[]): Boot;
-    public add(taskOrTasks: TBootTask | readonly TBootTask[]): Boot {
-        if (Array.isArray(taskOrTasks)) {
-            taskOrTasks.forEach((task) => this.addTaskToProcess(task));
-        } else {
-            this.addTaskToProcess(taskOrTasks as TBootTask);
+    public add(taskOrTasks: TFalsy | TBootTask | readonly TBootTask[]): Boot {
+        if (taskOrTasks) {
+            if (Array.isArray(taskOrTasks)) {
+                taskOrTasks.forEach((task) => this.addTaskToProcess(task));
+            } else {
+                this.addTaskToProcess(taskOrTasks as TBootTask);
+            }
         }
         return this;
     }
