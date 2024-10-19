@@ -115,11 +115,11 @@ export class Boot {
             }
         }
 
-        return {
+        return Object.freeze({
             delegate,
             name: options?.name || delegate.name,
             dependencies: dependencies ?? [],
-        };
+        });
     }
 
     // endregion: STATIC METHODS

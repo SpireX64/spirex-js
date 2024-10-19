@@ -13,6 +13,8 @@ describe("Boot", () => {
             expect(task).not.toBeNull();
             expect(task.delegate).toBe(taskDelegate);
             expect(task.dependencies).toHaveLength(0);
+            expect(Object.isSealed(task)).toBeTruthy();
+            expect(Object.isFrozen(task)).toBeTruthy();
         });
 
         test("Create a task with async delegate", () => {
@@ -24,6 +26,8 @@ describe("Boot", () => {
 
             // Arrange --------
             expect(task.delegate).toBe(asyncDelegate);
+            expect(Object.isSealed(task)).toBeTruthy();
+            expect(Object.isFrozen(task)).toBeTruthy();
         });
 
         test("Create a simple task with dependencies as param", () => {
