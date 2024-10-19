@@ -46,6 +46,24 @@ export enum BootState {
     Done,
 }
 
+export type TBootResult = {
+    success: readonly TBootTask[];
+    failure: readonly TBootTask[];
+};
+
+enum BootTaskState {
+    Idle,
+    Running,
+    Success,
+    Failure,
+    Skipped,
+}
+
+type TBootTaskNode = {
+    task: TBootTask;
+    state: BootTaskState;
+};
+
 const ERR_BOOT_STARTED = "Boot process already started";
 
 function isPromise(obj: any): obj is Promise<any> {
@@ -109,9 +127,9 @@ export class Boot {
     // region: FIELDS
 
     /** @internal */
-    private readonly _tasks: TBootTask[] = [];
-    /** @internal */
     private _state: BootState = BootState.Idle;
+    /** @internal */
+    private _nodes: TBootTaskNode[] = [];
 
     // endregion: FIELDS
 
@@ -119,7 +137,7 @@ export class Boot {
 
     /** Retrieves the number of process tasks. */
     public get tasksCount(): number {
-        return this._tasks.length;
+        return this._nodes.length;
     }
 
     /**
@@ -165,20 +183,33 @@ export class Boot {
         return this;
     }
 
-    public async runAsync(): Promise<boolean> {
+    public async runAsync(): Promise<TBootResult> {
         if (this._state !== BootState.Idle) {
             throw new Error(ERR_BOOT_STARTED);
         }
         this._state = BootState.Running;
-        const tasksPromises = this._tasks.map(async (task) => {
-            const taskReturnValue = task.delegate();
-            if (isPromise(taskReturnValue)) {
-                await taskReturnValue;
+        const tasksPromises = this._nodes.map(async (node) => {
+            node.state = BootTaskState.Running;
+            try {
+                const taskReturnValue = node.task.delegate();
+                if (isPromise(taskReturnValue)) {
+                    await taskReturnValue;
+                }
+                node.state = BootTaskState.Success;
+            } catch (err) {
+                node.state = BootTaskState.Failure;
             }
         });
         await Promise.all(tasksPromises);
         this._state = BootState.Done;
-        return true;
+        return {
+            success: this._nodes
+                .filter((node) => node.state === BootTaskState.Success)
+                .map((it) => it.task),
+            failure: this._nodes
+                .filter((node) => node.state === BootTaskState.Failure)
+                .map((it) => it.task),
+        };
     }
 
     // endregion: PUBLIC METHODS
@@ -187,9 +218,14 @@ export class Boot {
 
     /** @internal */
     private addTaskToProcess(task: TBootTask): void {
-        if (!this._tasks.includes(task)) {
-            this._tasks.push(task);
-        }
+        const isExists = this._nodes.find((it) => it.task === task) != null;
+        if (isExists) return;
+
+        const node: TBootTaskNode = {
+            state: BootTaskState.Idle,
+            task,
+        };
+        this._nodes.push(node);
     }
 
     // endregion: PRIVATE METHODS

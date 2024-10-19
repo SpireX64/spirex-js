@@ -247,8 +247,17 @@ describe("Boot", () => {
 
         test("Running boot process with a couple of sync tasks", async () => {
             // Arrange -------------
-            const syncTaskA = Boot.task(jest.fn());
-            const syncTaskB = Boot.task(jest.fn());
+            const queue: string[] = [];
+            const syncTaskA = Boot.task(
+                jest.fn(() => {
+                    queue.push("A");
+                }),
+            );
+            const syncTaskB = Boot.task(
+                jest.fn(() => {
+                    queue.push("B");
+                }),
+            );
             const boot = new Boot().add([syncTaskA, syncTaskB]);
 
             // Act -----------------
@@ -257,6 +266,8 @@ describe("Boot", () => {
             // Assert --------------
             expect(syncTaskA.delegate).toHaveBeenCalled();
             expect(syncTaskB.delegate).toHaveBeenCalled();
+
+            expect(queue.join("")).toBe("AB");
         });
 
         test("Running boot process with one a async task", async () => {
@@ -273,8 +284,17 @@ describe("Boot", () => {
 
         test("Running boot process with a couple of async tasks", async () => {
             // Arrange -------------
-            const syncTaskA = Boot.task(jest.fn(async () => {}));
-            const syncTaskB = Boot.task(jest.fn(async () => {}));
+            const queue: string[] = [];
+            const syncTaskA = Boot.task(
+                jest.fn(async () => {
+                    queue.push("A");
+                }),
+            );
+            const syncTaskB = Boot.task(
+                jest.fn(async () => {
+                    queue.push("B");
+                }),
+            );
             const boot = new Boot().add([syncTaskA, syncTaskB]);
 
             // Act -----------------
@@ -283,6 +303,35 @@ describe("Boot", () => {
             // Assert --------------
             expect(syncTaskA.delegate).toHaveBeenCalled();
             expect(syncTaskB.delegate).toHaveBeenCalled();
+
+            expect(queue.join("")).toBe("AB");
+        });
+    });
+
+    describe("Process result", () => {
+        test("Task has success result", async () => {
+            // Arrange ---------
+            const task = Boot.task(() => {});
+            const boot = new Boot().add(task);
+
+            // Act -------------
+            const result = await boot.runAsync();
+
+            // Assert ----------
+            expect(result.success).toContain(task);
+        });
+
+        test("Task has fail result", async () => {
+            const task = Boot.task(() => {
+                throw Error("test");
+            });
+            const boot = new Boot().add(task);
+
+            // Act -------------
+            const result = await boot.runAsync();
+
+            // Assert ----------
+            expect(result.failure).toContain(task);
         });
     });
 });
