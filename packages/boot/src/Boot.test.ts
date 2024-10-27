@@ -41,33 +41,35 @@ describe("Boot", () => {
             expect(Object.isFrozen(task)).toBeTruthy();
         });
 
-        // GIVEN: Delegate & expected task name.
-        // WHEN: Create a task with a delegate
-        //       and passing the task name in the factory options object.
-        // THEN: The task was created with the specified name.
-        test("A3.1. Create a task with name", () => {
-            // Arrange ------
-            const expectedName = "MyTask";
+        describe("A3. Determining the name of a task", () => {
+            // GIVEN: Delegate & expected task name.
+            // WHEN: Create a task with a delegate
+            //       and passing the task name in the factory options object.
+            // THEN: The task was created with the specified name.
+            test("A3.1. Create a task with name", () => {
+                // Arrange ------
+                const expectedName = "MyTask";
 
-            // Act ----------
-            const task = Boot.task(() => {}, { name: expectedName });
+                // Act ----------
+                const task = Boot.task(() => {}, { name: expectedName });
 
-            // Assert --------
-            expect(task.name).toBe(expectedName);
-        });
+                // Assert --------
+                expect(task.name).toBe(expectedName);
+            });
 
-        // GIVEN: Named function as delegate.
-        // WHEN: Create a task with the given delegate.
-        // THEN: The task was created with the delegate name.
-        test("A3.2. Create a task with name from named function as delegate", () => {
-            // Arrange ------
-            function init() {}
+            // GIVEN: Named function as delegate.
+            // WHEN: Create a task with the given delegate.
+            // THEN: The task was created with the delegate name.
+            test("A3.2. Create a task with name from named function as delegate", () => {
+                // Arrange ------
+                function init() {}
 
-            // Act -----------
-            const task = Boot.task(init);
+                // Act -----------
+                const task = Boot.task(init);
 
-            // Assert --------
-            expect(task.name).toBe(init.name);
+                // Assert --------
+                expect(task.name).toBe(init.name);
+            });
         });
 
         describe("A4. Determining the priority of a task", () => {
@@ -131,6 +133,30 @@ describe("Boot", () => {
 
                 // Assert ----------
                 expect(error).not.toBeNull();
+            });
+        });
+
+        describe("A5. Optional task flag", () => {
+            // GIVEN: Delegate.
+            // WHEN: Create a task without optional flag.
+            // THEN: The important task will be created.
+            test("A5.1. Create an important/default task", () => {
+                // Act ------------
+                const task = Boot.task(() => {});
+
+                // Assert --------
+                expect(task.optional).toBeFalsy(); // is important
+            });
+
+            // GIVEN: Delegate.
+            // WHEN: Create a task with optional flag.
+            // THEN: The important task will be created.
+            test("A5.2. Create a task with optional flag", () => {
+                // Act ------------
+                const task = Boot.task(() => {}, { optional: true });
+
+                // Assert ---------
+                expect(task.optional).toBeTruthy();
             });
         });
 

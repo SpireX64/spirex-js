@@ -23,6 +23,7 @@ export type TBootTaskAsyncDelegate = () => Promise<void>;
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
 export type TBootTask = {
+    optional: boolean;
     priority: number;
     name: string;
     delegate: TBootTaskDelegate;
@@ -31,6 +32,7 @@ export type TBootTask = {
 
 export type TBootTaskOptions = {
     priority?: number;
+    optional?: boolean;
     name?: string;
     dependencies?: readonly TBootTask[];
 };
@@ -126,6 +128,7 @@ export class Boot {
         return Object.freeze({
             delegate,
             priority,
+            optional: Boolean(options?.optional),
             name: options?.name || delegate.name,
             dependencies: dependencies ?? [],
         });
