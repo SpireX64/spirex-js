@@ -23,12 +23,14 @@ export type TBootTaskAsyncDelegate = () => Promise<void>;
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
 export type TBootTask = {
+    priority: number;
     name: string;
     delegate: TBootTaskDelegate;
     dependencies: readonly TBootTask[];
 };
 
 export type TBootTaskOptions = {
+    priority?: number;
     name?: string;
     dependencies?: readonly TBootTask[];
 };
@@ -65,6 +67,9 @@ type TBootTaskNode = {
 };
 
 const ERR_BOOT_STARTED = "Boot process already started";
+const ERR_PRIORITY_NOT_A_NUMBER = "Priority must be a number";
+
+export const DEFAULT_TASK_PRIORITY: number = 0;
 
 function isPromise(obj: any): obj is Promise<any> {
     return obj != null && typeof obj === "object" && "then" in obj;
@@ -115,8 +120,12 @@ export class Boot {
             }
         }
 
+        const priority = options?.priority ?? DEFAULT_TASK_PRIORITY;
+        if (isNaN(priority)) throw new Error(ERR_PRIORITY_NOT_A_NUMBER);
+
         return Object.freeze({
             delegate,
+            priority,
             name: options?.name || delegate.name,
             dependencies: dependencies ?? [],
         });

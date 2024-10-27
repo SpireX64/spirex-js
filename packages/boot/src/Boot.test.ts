@@ -1,8 +1,14 @@
-import { Boot, BootState, type TFalsy } from "./Boot";
+import { Boot, BootState, type TFalsy, DEFAULT_TASK_PRIORITY } from "./Boot";
 
 describe("Boot", () => {
-    describe("Creating Tasks", () => {
-        test("Create a simple task without dependencies", () => {
+    describe("A. Creating Tasks", () => {
+        // GIVEN: Synchronous delegate.
+        // WHEN: Pass sync delegate to the task factory.
+        // THEN
+        //   - Task was created.
+        //   - Task has a delegate reference.
+        //   - Task is immutable (sealed & frozen).
+        test("A1. Create a task with sync delegate", () => {
             // Arrange -------
             const taskDelegate = () => {};
 
@@ -12,12 +18,17 @@ describe("Boot", () => {
             // Assert --------
             expect(task).not.toBeNull();
             expect(task.delegate).toBe(taskDelegate);
-            expect(task.dependencies).toHaveLength(0);
             expect(Object.isSealed(task)).toBeTruthy();
             expect(Object.isFrozen(task)).toBeTruthy();
         });
 
-        test("Create a task with async delegate", () => {
+        // GIVEN: Asynchronous delegate.
+        // WHEN: Pass sync delegate to the task factory.
+        // THEN
+        //   - Task was created.
+        //   - Task has a delegate reference.
+        //   - Task is immutable (sealed & frozen).
+        test("A2. Create a task with async delegate", () => {
             // Arrange --------
             const asyncDelegate = async () => {};
 
@@ -28,6 +39,99 @@ describe("Boot", () => {
             expect(task.delegate).toBe(asyncDelegate);
             expect(Object.isSealed(task)).toBeTruthy();
             expect(Object.isFrozen(task)).toBeTruthy();
+        });
+
+        // GIVEN: Delegate & expected task name.
+        // WHEN: Create a task with a delegate
+        //       and passing the task name in the factory options object.
+        // THEN: The task was created with the specified name.
+        test("A3.1. Create a task with name", () => {
+            // Arrange ------
+            const expectedName = "MyTask";
+
+            // Act ----------
+            const task = Boot.task(() => {}, { name: expectedName });
+
+            // Assert --------
+            expect(task.name).toBe(expectedName);
+        });
+
+        // GIVEN: Named function as delegate.
+        // WHEN: Create a task with the given delegate.
+        // THEN: The task was created with the delegate name.
+        test("A3.2. Create a task with name from named function as delegate", () => {
+            // Arrange ------
+            function init() {}
+
+            // Act -----------
+            const task = Boot.task(init);
+
+            // Assert --------
+            expect(task.name).toBe(init.name);
+        });
+
+        describe("A4. Determining the priority of a task", () => {
+            // GIVEN: Delegate.
+            // WHEN: Create task without a priority definition.
+            // THEN: The task has a default priority.
+            test("A4.1. Create a task with default priority", () => {
+                // Act --------
+                const task = Boot.task(() => {});
+
+                // Assert -----
+                expect(task.priority).toBe(DEFAULT_TASK_PRIORITY);
+            });
+
+            // GIVEN: Delegate & valid number as priority
+            // WHEN: Create a task with a priority definition.
+            // THEN: The task has the specified priority.
+            test("A4.2a. Create a task with a priority definition", () => {
+                // Arrange --------
+                const expectedPriority = 42;
+
+                // Act ------------
+                const task = Boot.task(() => {}, {
+                    priority: expectedPriority,
+                });
+
+                // Assert ---------
+                expect(task.priority).toBe(expectedPriority);
+            });
+
+            // GIVEN: Delegate & infinite priority value.
+            // WHEN: Create a task with an infinite priority value.
+            // THEN: The task has the specified priority.
+            test("A4.2b Create a task with an infinite priority value", () => {
+                // Arrange --------
+                const expectedPriority = Infinity;
+
+                // Act ------------
+                const task = Boot.task(() => {}, {
+                    priority: expectedPriority,
+                });
+
+                // Assert ----------
+                expect(task.priority).toBe(expectedPriority);
+            });
+
+            // GIVEN: Delegate & NaN as priority
+            // WHEN: Create a task with an NaN priority.
+            // THEN: An error will be thrown.
+            test("A4.2c. Creating a task with an invalid priority will throw an error", () => {
+                // Arrange --------
+                const invalidPriority = NaN;
+
+                // Act ------------
+                let error: Error | null = null;
+                try {
+                    Boot.task(() => {}, { priority: invalidPriority });
+                } catch (e) {
+                    if (e instanceof Error) error = e;
+                }
+
+                // Assert ----------
+                expect(error).not.toBeNull();
+            });
         });
 
         test("Create a simple task with dependencies as param", () => {
@@ -56,28 +160,6 @@ describe("Boot", () => {
             // Assert ------
             expect(task.dependencies).toContain(taskA);
             expect(task.dependencies).toContain(taskB);
-        });
-
-        test("Create a task with name", () => {
-            // Arrange ------
-            const expectedName = "MyTask";
-
-            // Act ----------
-            const task = Boot.task(() => {}, { name: expectedName });
-
-            // Assert --------
-            expect(task.name).toBe(expectedName);
-        });
-
-        test("Create a task with name from delegate function", () => {
-            // Arrange ------
-            function init() {}
-
-            // Act -----------
-            const task = Boot.task(init);
-
-            // Assert --------
-            expect(task.name).toBe(init.name);
         });
     });
 
