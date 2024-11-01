@@ -27,14 +27,21 @@ export type TBootTask = {
     priority: number;
     name: string;
     delegate: TBootTaskDelegate;
-    dependencies: readonly TBootTask[];
+    dependencies: readonly TBootTaskDependency[];
 };
+
+export type TBootTaskDependency = {
+    task: TBootTask;
+    weak?: boolean;
+};
+
+export type TBootTaskDependencyUnion = TBootTask | TBootTaskDependency;
 
 export type TBootTaskOptions = {
     priority?: number;
     optional?: boolean;
     name?: string;
-    dependencies?: readonly TBootTask[];
+    deps?: readonly TBootTaskDependencyUnion[];
 };
 
 /**
@@ -50,22 +57,16 @@ export enum BootState {
     Done,
 }
 
-export type TBootResult = {
-    success: readonly TBootTask[];
-    failure: readonly TBootTask[];
-};
-
 enum BootTaskState {
     Idle,
-    Running,
-    Success,
-    Failure,
-    Skipped,
 }
 
+/** @internal */
 type TBootTaskNode = {
     task: TBootTask;
     state: BootTaskState;
+    awaiting: TBootTaskNode[];
+    children: TBootTaskNode[];
 };
 
 const ERR_BOOT_STARTED = "Boot process already started";
@@ -75,6 +76,9 @@ export const DEFAULT_TASK_PRIORITY: number = 0;
 
 function isPromise(obj: any): obj is Promise<any> {
     return obj != null && typeof obj === "object" && "then" in obj;
+}
+export function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
+    return task.dependencies.some((it) => it.task === dependency);
 }
 
 export class Boot {
@@ -101,24 +105,24 @@ export class Boot {
      */
     public static task(
         delegate: TBootTaskDelegate,
-        dependencies?: readonly TBootTask[] | TNullable,
+        dependencies?: readonly TBootTaskDependencyUnion[] | TNullable,
     ): TBootTask;
 
     public static task(
         delegate: TBootTaskDelegate,
         optionsOrDependencies?:
             | TBootTaskOptions
-            | readonly TBootTask[]
+            | readonly TBootTaskDependencyUnion[]
             | TNullable,
     ): TBootTask {
-        let dependencies: readonly TBootTask[] | TNullable;
+        let dependencies: readonly TBootTaskDependencyUnion[] | TNullable;
         let options: TBootTaskOptions | TNullable;
         if (optionsOrDependencies) {
             if (Array.isArray(optionsOrDependencies)) {
                 dependencies = optionsOrDependencies;
             } else {
                 options = optionsOrDependencies as TBootTaskOptions;
-                dependencies = options.dependencies;
+                dependencies = options.deps;
             }
         }
 
@@ -130,7 +134,10 @@ export class Boot {
             priority,
             optional: Boolean(options?.optional),
             name: options?.name || delegate.name,
-            dependencies: dependencies ?? [],
+            dependencies:
+                dependencies?.map((it) =>
+                    Object.freeze("task" in it ? it : { task: it }),
+                ) ?? [],
         });
     }
 
@@ -142,6 +149,8 @@ export class Boot {
     private _state: BootState = BootState.Idle;
     /** @internal */
     private _nodes: TBootTaskNode[] = [];
+    /** @internal */
+    private _unreachableNodes: TBootTaskNode[] = [];
 
     // endregion: FIELDS
 
@@ -195,35 +204,6 @@ export class Boot {
         return this;
     }
 
-    public async runAsync(): Promise<TBootResult> {
-        if (this._state !== BootState.Idle) {
-            throw new Error(ERR_BOOT_STARTED);
-        }
-        this._state = BootState.Running;
-        const tasksPromises = this._nodes.map(async (node) => {
-            node.state = BootTaskState.Running;
-            try {
-                const taskReturnValue = node.task.delegate();
-                if (isPromise(taskReturnValue)) {
-                    await taskReturnValue;
-                }
-                node.state = BootTaskState.Success;
-            } catch (err) {
-                node.state = BootTaskState.Failure;
-            }
-        });
-        await Promise.all(tasksPromises);
-        this._state = BootState.Done;
-        return {
-            success: this._nodes
-                .filter((node) => node.state === BootTaskState.Success)
-                .map((it) => it.task),
-            failure: this._nodes
-                .filter((node) => node.state === BootTaskState.Failure)
-                .map((it) => it.task),
-        };
-    }
-
     // endregion: PUBLIC METHODS
 
     // region: PRIVATE METHODS
@@ -234,11 +214,75 @@ export class Boot {
         if (isExists) return;
 
         const node: TBootTaskNode = {
-            state: BootTaskState.Idle,
             task,
+            state: BootTaskState.Idle,
+            awaiting: [],
+            children: [],
         };
-        this._nodes.push(node);
+
+        if (this.resolveNodeDependencies(node)) {
+            this._nodes.push(node);
+        } else {
+            this._unreachableNodes.push(node);
+        }
+
+        this.updateNodeChildren(node);
     }
 
+    /** @internal */
+    private resolveNodeDependencies(node: TBootTaskNode): boolean {
+        let isResolved = true;
+        const deps = node.task.dependencies;
+        for (let i = 0; i < deps.length; i++) {
+            const dependencyTask = deps[i];
+
+            let dependencyNode: TBootTaskNode | TNullable;
+            dependencyNode = this._nodes.find(
+                (it) => it.task === dependencyTask.task,
+            );
+
+            if (!dependencyNode)
+                dependencyNode = this._unreachableNodes.find(
+                    (it) => it.task === dependencyTask.task,
+                );
+
+            if (dependencyNode) {
+                node.awaiting.push(dependencyNode);
+                dependencyNode.children.push(node);
+            } else {
+                isResolved = false;
+            }
+        }
+        return isResolved;
+    }
+
+    /** @internal */
+    private updateNodeChildren(node: TBootTaskNode): void {
+        let isAnyChildResolved = false;
+        for (let i = 0; i < this._unreachableNodes.length; i++) {
+            const unreachableNode = this._unreachableNodes[i];
+
+            const matched = unreachableNode.task.dependencies.some(
+                (it) => it.task === node.task,
+            );
+            if (!matched) continue;
+
+            unreachableNode.awaiting.push(node);
+            node.children.push(unreachableNode);
+
+            const allDependenciesResolved =
+                unreachableNode.awaiting.length ===
+                unreachableNode.task.dependencies.length;
+
+            if (!allDependenciesResolved) continue;
+
+            delete this._unreachableNodes[i];
+            this._nodes.push(unreachableNode);
+            isAnyChildResolved = true;
+        }
+
+        if (isAnyChildResolved)
+            this._unreachableNodes = this._unreachableNodes.filter(Boolean);
+    }
     // endregion: PRIVATE METHODS
 }

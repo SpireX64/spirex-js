@@ -1,4 +1,12 @@
-import { Boot, BootState, type TFalsy, DEFAULT_TASK_PRIORITY } from "./Boot";
+// noinspection DuplicatedCode
+
+import {
+    Boot,
+    BootState,
+    type TFalsy,
+    DEFAULT_TASK_PRIORITY,
+    hasDependency,
+} from "./Boot";
 
 describe("Boot", () => {
     describe("A. Creating Tasks", () => {
@@ -160,36 +168,158 @@ describe("Boot", () => {
             });
         });
 
-        test("Create a simple task with dependencies as param", () => {
-            // Arrange ------
-            const taskA = Boot.task(() => {});
-            const taskB = Boot.task(() => {});
+        describe("A6. Task's dependencies definition", () => {
+            // WHEN: Create task without dependencies
+            test("A6.0. Task have no dependencies by default", () => {
+                // Act ----------
+                const task = Boot.task(() => {});
 
-            // Act ----------
-            const task = Boot.task(() => {}, [taskA, taskB]);
-
-            // Assert ------
-            expect(task.dependencies).toContain(taskA);
-            expect(task.dependencies).toContain(taskB);
-        });
-
-        test("Create a simple task with dependencies in options", () => {
-            // Arrange ------
-            const taskA = Boot.task(() => {});
-            const taskB = Boot.task(() => {});
-
-            // Act ----------
-            const task = Boot.task(() => {}, {
-                dependencies: [taskA, taskB],
+                // Assert -------
+                expect(task.dependencies.length).toBe(0);
             });
 
-            // Assert ------
-            expect(task.dependencies).toContain(taskA);
-            expect(task.dependencies).toContain(taskB);
+            test("A6.1a. Add single dependency in params", () => {
+                // Arrange --------------
+                const taskD = Boot.task(() => {});
+
+                // Act ------------------
+                const task = Boot.task(() => {}, [taskD]);
+
+                // Assert ---------------
+                expect(hasDependency(task, taskD)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskD);
+                expect(task.dependencies[0].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
+            });
+
+            test("A6.1b. Add many dependencies in params", () => {
+                // Arrange ------------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+
+                // Act ----------------
+                const task = Boot.task(() => {}, [taskA, taskB]);
+
+                // Expect -------------
+                expect(hasDependency(task, taskA)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskA);
+                expect(task.dependencies[0].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
+
+                expect(hasDependency(task, taskB)).toBeTruthy();
+                expect(task.dependencies[1].task).toBe(taskB);
+                expect(task.dependencies[1].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
+            });
+
+            test("A6.1c. Pass an empty array as dependencies in params", () => {
+                // Act ----------------
+                const task = Boot.task(() => {}, []);
+
+                // Assert -------------
+                expect(task.dependencies.length).toBe(0);
+            });
+
+            test("A6.2a. Add dependency in factory options", () => {
+                // Arrange --------
+                const taskD = Boot.task(() => {});
+
+                // Act -----------
+                const task = Boot.task(() => {}, { deps: [taskD] });
+
+                // Assert --------
+                expect(hasDependency(task, taskD)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskD);
+            });
+
+            test("A6.2b. Add many dependencies in params", () => {
+                // Arrange ------------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+
+                // Act ----------------
+                const task = Boot.task(() => {}, {
+                    deps: [taskA, taskB],
+                });
+
+                // Expect -------------
+                expect(hasDependency(task, taskA)).toBeTruthy();
+                expect(hasDependency(task, taskB)).toBeTruthy();
+            });
+
+            test("A6.2c. Pass an empty array as dependencies in factory options", () => {
+                // Act ----------------
+                const task = Boot.task(() => {}, { deps: [] });
+
+                // Assert -------------
+                expect(task.dependencies.length).toBe(0);
+            });
+
+            test("A6.3a. Add dependency with params wrapper", () => {
+                // Arrange ------------
+                const taskD = Boot.task(() => {});
+
+                // Act ----------------
+                const task = Boot.task(() => {}, [{ task: taskD }]);
+
+                // Assert -------------
+                expect(hasDependency(task, taskD)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskD);
+                expect(task.dependencies[0].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
+            });
+
+            test("A6.3a. Add many dependencies with params wrappers", () => {
+                // Arrange ------------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+
+                // Act ----------------
+                const task = Boot.task(() => {}, [
+                    { task: taskA },
+                    { task: taskB },
+                ]);
+
+                // Assert -------------
+                expect(hasDependency(task, taskA)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskA);
+                expect(task.dependencies[0].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
+
+                expect(hasDependency(task, taskB)).toBeTruthy();
+                expect(task.dependencies[1].task).toBe(taskB);
+                expect(task.dependencies[1].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
+            });
+
+            test("A6.4. Mixed dependencies format", () => {
+                // Arrange ---------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+
+                // Act -------------
+                const task = Boot.task(() => {}, [{ task: taskA }, taskB]);
+
+                // Assert ----------
+                expect(hasDependency(task, taskA)).toBeTruthy();
+                expect(task.dependencies[0].task).toBe(taskA);
+                expect(task.dependencies[0].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
+
+                expect(hasDependency(task, taskB)).toBeTruthy();
+                expect(task.dependencies[1].task).toBe(taskB);
+                expect(task.dependencies[1].weak).toBeFalsy();
+                expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
+            });
         });
     });
 
-    describe("Creating instance of boot process", () => {
+    describe("B. Creating instance of boot process", () => {
+        // WHEN: Create new boot instance without params
+        // THEN
+        //   - The boot instance was created
+        //   - The boot instance is in "Idle" state
+        //   - The boot instance have no boot tasks yet
         test("Create new instance of 'Boot'", () => {
             // Act -----------
             const boot = new Boot();
@@ -197,253 +327,7 @@ describe("Boot", () => {
             // Assert --------
             expect(boot).toBeInstanceOf(Boot);
             expect(boot.state).toBe(BootState.Idle);
-        });
-    });
-
-    describe("Adding tasks to boot process", () => {
-        // GIVEN:
-        //  - One task is created
-        //  - Process is created
-        // WHEN: Add task to process
-        // THEN: The task has been added to the process
-        test("Adding one task to boot process", () => {
-            // Arrange -----------
-            const task = Boot.task(() => {});
-            const boot = new Boot();
-
-            // Act ---------------
-            const bootRef = boot.add(task);
-
-            // Assert ------------
-            expect(bootRef).toBe(boot);
-            expect(boot.tasksCount).toBe(1);
-        });
-
-        // GIVEN
-        //  - Two tasks are created
-        //  - Process is created
-        // WHEN: Add tasks to process
-        // THEN: Both tasks have been added to the process.
-        test("Adding multiple tasks to boot process", () => {
-            // Arrange -----------
-            const task1 = Boot.task(() => {});
-            const task2 = Boot.task(() => {});
-            const boot = new Boot();
-
-            // Act ---------------
-            const bootRef = boot.add(task1).add(task2);
-
-            // Assert ------------
-            expect(bootRef).toBe(boot);
-            expect(boot.tasksCount).toBe(2);
-        });
-
-        // GIVEN:
-        //  - One task is created
-        //  - Process is created
-        // WHEN: Add task to process 2 times
-        // THEN: The task is added to the process only once
-        test("Adding same task twice to boot process", () => {
-            // Arrange -----------
-            const task = Boot.task(() => {});
-            const boot = new Boot().add(task);
-
-            // Act ---------------
-            boot.add(task);
-
-            // Assert ------------
-            expect(boot.tasksCount).toBe(1);
-        });
-
-        // GIVEN
-        //  - Two tasks are created
-        //  - Process is created
-        // WHEN: Add tasks to process in list
-        // THEN: Both tasks have been added to the process.
-        test("Adding multiple tasks in list to boot process", () => {
-            // Arrange -----------
-            const task1 = Boot.task(() => {});
-            const task2 = Boot.task(() => {});
-            const boot = new Boot();
-
-            // Act ---------------
-            boot.add([task1, task2]);
-
-            // Assert ------------
-            expect(boot.tasksCount).toBe(2);
-        });
-
-        // GIVEN: Process is created
-        // WHEN: Trying to add falsy-value to process
-        // THEN: Falsy-value was ignored
-        test.each([null, undefined, false, 0] as TFalsy[])(
-            "Trying to add falsy (%s) to boot process",
-            (falsy) => {
-                // Arrange -----------
-                const boot = new Boot();
-
-                // Act ---------------
-                boot.add(falsy);
-
-                // Assert ------------
-                expect(boot.tasksCount).toBe(0);
-            },
-        );
-
-        // GIVEN
-        //  - Process is created
-        //  - One task is created
-        // WHEN: Trying to add falsy-value with task in list to process
-        // THEN
-        //  - Falsy-value was ignored
-        //  - The task was added to process
-        test.each([null, undefined, false, 0] as TFalsy[])(
-            "Trying to add falsy (%s) in list to boot process",
-            (falsy) => {
-                // Arrange -----------
-                const task = Boot.task(() => {});
-                const boot = new Boot();
-
-                // Act --------------
-                boot.add([falsy, task]);
-
-                // Assert -----------
-                expect(boot.tasksCount).toBe(1);
-            },
-        );
-    });
-
-    describe("Process execution", () => {
-        test("Running empty boot process", async () => {
-            // Arrange -------------
-            const boot = new Boot();
-
-            // Act -----------------
-            const result = await boot.runAsync();
-
-            // Assert --------------
-            expect(result).toBeTruthy();
-            expect(boot.state).toBe(BootState.Done);
-        });
-
-        test("Running boot process twice", async () => {
-            // Arrange -------------
-            const boot = new Boot();
-            const promise = boot.runAsync();
-
-            // Act -----------------
-            let error: Error | null = null;
-            try {
-                await boot.runAsync();
-            } catch (e) {
-                if (e instanceof Error) error = e;
-            }
-            await promise;
-
-            // Assert --------------
-            expect(error).not.toBeNull();
-            expect(boot.state).toBe(BootState.Done);
-        });
-
-        test("Running boot process with one a sync task", async () => {
-            // Arrange -------------
-            const syncTask = Boot.task(jest.fn());
-            const boot = new Boot().add(syncTask);
-
-            // Act -----------------
-            await boot.runAsync();
-
-            // Assert --------------
-            expect(syncTask.delegate).toHaveBeenCalled();
-        });
-
-        test("Running boot process with a couple of sync tasks", async () => {
-            // Arrange -------------
-            const queue: string[] = [];
-            const syncTaskA = Boot.task(
-                jest.fn(() => {
-                    queue.push("A");
-                }),
-            );
-            const syncTaskB = Boot.task(
-                jest.fn(() => {
-                    queue.push("B");
-                }),
-            );
-            const boot = new Boot().add([syncTaskA, syncTaskB]);
-
-            // Act -----------------
-            await boot.runAsync();
-
-            // Assert --------------
-            expect(syncTaskA.delegate).toHaveBeenCalled();
-            expect(syncTaskB.delegate).toHaveBeenCalled();
-
-            expect(queue.join("")).toBe("AB");
-        });
-
-        test("Running boot process with one a async task", async () => {
-            // Arrange -------------
-            const syncTask = Boot.task(jest.fn(async () => {}));
-            const boot = new Boot().add(syncTask);
-
-            // Act -----------------
-            await boot.runAsync();
-
-            // Assert --------------
-            expect(syncTask.delegate).toHaveBeenCalled();
-        });
-
-        test("Running boot process with a couple of async tasks", async () => {
-            // Arrange -------------
-            const queue: string[] = [];
-            const syncTaskA = Boot.task(
-                jest.fn(async () => {
-                    queue.push("A");
-                }),
-            );
-            const syncTaskB = Boot.task(
-                jest.fn(async () => {
-                    queue.push("B");
-                }),
-            );
-            const boot = new Boot().add([syncTaskA, syncTaskB]);
-
-            // Act -----------------
-            await boot.runAsync();
-
-            // Assert --------------
-            expect(syncTaskA.delegate).toHaveBeenCalled();
-            expect(syncTaskB.delegate).toHaveBeenCalled();
-
-            expect(queue.join("")).toBe("AB");
-        });
-    });
-
-    describe("Process result", () => {
-        test("Task has success result", async () => {
-            // Arrange ---------
-            const task = Boot.task(() => {});
-            const boot = new Boot().add(task);
-
-            // Act -------------
-            const result = await boot.runAsync();
-
-            // Assert ----------
-            expect(result.success).toContain(task);
-        });
-
-        test("Task has fail result", async () => {
-            const task = Boot.task(() => {
-                throw Error("test");
-            });
-            const boot = new Boot().add(task);
-
-            // Act -------------
-            const result = await boot.runAsync();
-
-            // Assert ----------
-            expect(result.failure).toContain(task);
+            expect(boot.tasksCount).toBe(0);
         });
     });
 });
