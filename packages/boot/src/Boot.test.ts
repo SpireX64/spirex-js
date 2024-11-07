@@ -387,4 +387,34 @@ describe("Boot", () => {
             expect(boot.tasksCount).toBe(0);
         });
     });
+
+    describe("C. Adding tasks to a process", () => {
+        describe("C1. Adding a single task to a process", () => {
+            test("C1.1a Add a single task", () => {
+                // Arrange ------
+                const boot = new Boot();
+                const task = Boot.task(() => {});
+
+                // Act ----------
+                boot.add(task);
+
+                // Assert -------
+                expect(boot.has(task)).toBeTruthy();
+                expect(boot.tasksCount).toBe(1);
+            });
+
+            test("C1.1b Trying to add a task to a process when it has already been added before", () => {
+                // Arrange ------
+                const task = Boot.task(() => {});
+                const boot = new Boot().add(task);
+
+                // Act ----------
+                boot.add(task);
+
+                // Assert -------
+                expect(boot.has(task)).toBeTruthy();
+                expect(boot.tasksCount).toBe(1);
+            });
+        });
+    });
 });

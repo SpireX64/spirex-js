@@ -210,6 +210,13 @@ export class Boot {
         return this;
     }
 
+    public has(task: TBootTask): boolean {
+        return (
+            this._nodes.some((it) => it.task === task) ||
+            this._unreachableNodes.some((it) => it.task === task)
+        );
+    }
+
     // endregion: PUBLIC METHODS
 
     // region: PRIVATE METHODS
