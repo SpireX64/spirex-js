@@ -71,6 +71,8 @@ type TBootTaskNode = {
 
 const ERR_BOOT_STARTED = "Boot process already started";
 const ERR_PRIORITY_NOT_A_NUMBER = "Priority must be a number";
+const ERR_STRONG_DEPENDENCY_OPTIONAL_TASK =
+    "An important task should not have a strong dependency on an optional task.";
 
 export const DEFAULT_TASK_PRIORITY: number = 0;
 
@@ -129,15 +131,19 @@ export class Boot {
         const priority = options?.priority ?? DEFAULT_TASK_PRIORITY;
         if (isNaN(priority)) throw new Error(ERR_PRIORITY_NOT_A_NUMBER);
 
+        const optional = Boolean(options?.optional);
         return Object.freeze({
             delegate,
             priority,
-            optional: Boolean(options?.optional),
+            optional,
             name: options?.name || delegate.name,
             dependencies:
-                dependencies?.map((it) =>
-                    Object.freeze("task" in it ? it : { task: it }),
-                ) ?? [],
+                dependencies?.map((it) => {
+                    const dep = Object.freeze("task" in it ? it : { task: it });
+                    if (!optional && dep.task.optional && !dep.weak)
+                        throw new Error(ERR_STRONG_DEPENDENCY_OPTIONAL_TASK);
+                    return dep;
+                }) ?? [],
         });
     }
 

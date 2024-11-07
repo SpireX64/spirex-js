@@ -312,6 +312,61 @@ describe("Boot", () => {
                 expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
             });
         });
+
+        describe("A7. Weak dependency", () => {
+            test("A7.1a. Strong dependency by default", () => {
+                // Arrange --------
+                const taskD = Boot.task(() => {});
+
+                // Act ------------
+                const task = Boot.task(() => {}, [taskD]);
+
+                // Assert ---------
+                expect(hasDependency(task, taskD)).toBeTruthy();
+                expect(task.dependencies[0].weak).toBeFalsy();
+            });
+
+            test("A7.1b. Mark a dependency as weak", () => {
+                // Arrange ------
+                const taskD = Boot.task(() => {});
+
+                // Act ----------
+                const task = Boot.task(() => {}, [{ task: taskD, weak: true }]);
+
+                // Assert -------
+                expect(hasDependency(task, taskD)).toBeTruthy();
+                expect(task.dependencies[0].weak).toBeTruthy();
+            });
+
+            test("A7.2a. An important task should not have a strong dependency on an optional task", () => {
+                // Arrange ------
+                const optionalTask = Boot.task(() => {}, { optional: true });
+
+                // Act ----------
+                let error: Error | null = null;
+                try {
+                    Boot.task(() => {}, [optionalTask]);
+                } catch (e) {
+                    if (e instanceof Error) error = e;
+                }
+
+                // Assert -------
+                expect(error).not.toBeNull();
+            });
+
+            test("A7.2b. An important task may have a weak dependency on an optional task", () => {
+                // Arrange ------
+                const optionalTask = Boot.task(() => {}, { optional: true });
+
+                // Act ----------
+                const importantTask = Boot.task(() => {}, [
+                    { task: optionalTask, weak: true },
+                ]);
+
+                // Assert -------
+                expect(hasDependency(importantTask, optionalTask)).toBeTruthy();
+            });
+        });
     });
 
     describe("B. Creating instance of boot process", () => {
