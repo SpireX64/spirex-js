@@ -469,5 +469,33 @@ describe("Boot", () => {
                 expect(boot.tasksCount).toBe(2);
             });
         });
+
+        describe("C3. Using falsy-values when adding tasks", () => {
+            test("C3.1. Pass falsy-value as param", () => {
+                // Arrange --------
+                const boot = new Boot();
+                const task = Boot.task(() => {});
+
+                // Act ------------
+                boot.add(false).add(null).add(undefined).add(task);
+
+                // Assert ---------
+                expect(boot.tasksCount).toBe(1);
+                expect(boot.has(task)).toBeTruthy();
+            });
+
+            test("C3.2. Pass falsy-value in array", () => {
+                // Arrange --------
+                const boot = new Boot();
+                const task = Boot.task(() => {});
+
+                // Act ------------
+                boot.add([false, undefined, null, task]);
+
+                // Assert ---------
+                expect(boot.tasksCount).toBe(1);
+                expect(boot.has(task)).toBeTruthy();
+            });
+        });
     });
 });
