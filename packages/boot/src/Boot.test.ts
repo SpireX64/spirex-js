@@ -390,7 +390,7 @@ describe("Boot", () => {
 
     describe("C. Adding tasks to a process", () => {
         describe("C1. Adding a single task to a process", () => {
-            test("C1.1a Add a single task", () => {
+            test("C1.1 Add a single task", () => {
                 // Arrange ------
                 const boot = new Boot();
                 const task = Boot.task(() => {});
@@ -403,7 +403,7 @@ describe("Boot", () => {
                 expect(boot.tasksCount).toBe(1);
             });
 
-            test("C1.1b Trying to add a task to a process when it has already been added before", () => {
+            test("C1.2 Trying to add a task to a process when it has already been added before", () => {
                 // Arrange ------
                 const task = Boot.task(() => {});
                 const boot = new Boot().add(task);
@@ -414,6 +414,59 @@ describe("Boot", () => {
                 // Assert -------
                 expect(boot.has(task)).toBeTruthy();
                 expect(boot.tasksCount).toBe(1);
+            });
+
+            test("C1.3. Adding tasks to a process using a call chain", () => {
+                // Arrange -------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const taskC = Boot.task(() => {});
+
+                // Act -----------
+                const bootRef = boot.add(taskA).add(taskB).add(taskC);
+
+                // Assert --------
+                expect(bootRef).toBe(boot);
+                expect(boot.has(taskA)).toBeTruthy();
+                expect(boot.has(taskB)).toBeTruthy();
+                expect(boot.has(taskC)).toBeTruthy();
+                expect(boot.tasksCount).toBe(3);
+            });
+        });
+
+        describe("C2. Adding multiple tasks to a process", () => {
+            test("C2.1. Adding multiple tasks to a process by array", () => {
+                // Arrange --------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const taskC = Boot.task(() => {});
+
+                // Act ------------
+                const bootRef = boot.add([taskA, taskB, taskC]);
+
+                // Assert ---------
+                expect(bootRef).toBe(boot);
+                expect(boot.has(taskA)).toBeTruthy();
+                expect(boot.has(taskB)).toBeTruthy();
+                expect(boot.has(taskC)).toBeTruthy();
+                expect(boot.tasksCount).toBe(3);
+            });
+
+            test("C2.2. Skipping tasks that have already been added", () => {
+                // Arrange --------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const boot = new Boot().add(taskA);
+
+                // Act ------------
+                boot.add([taskA, taskB, taskB]);
+
+                // Assert ---------
+                expect(boot.has(taskA)).toBeTruthy();
+                expect(boot.has(taskB)).toBeTruthy();
+                expect(boot.tasksCount).toBe(2);
             });
         });
     });
