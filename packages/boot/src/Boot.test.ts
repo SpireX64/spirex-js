@@ -10,51 +10,53 @@ import {
 
 describe("Boot", () => {
     describe("A. Creating Tasks", () => {
-        // GIVEN: Synchronous delegate.
-        // WHEN: Pass sync delegate to the task factory.
-        // THEN
-        //   - Task was created.
-        //   - Task has a delegate reference.
-        //   - Task is immutable (sealed & frozen).
-        test("A1. Create a task with sync delegate", () => {
-            // Arrange -------
-            const taskDelegate = () => {};
+        describe("A1. Create a task with delegate", () => {
+            // GIVEN: Synchronous delegate.
+            // WHEN: Pass sync delegate to the task factory.
+            // THEN
+            //   - Task was created.
+            //   - Task has a delegate reference.
+            //   - Task is immutable (sealed & frozen).
+            test("A1.1. With sync delegate", () => {
+                // Arrange -------
+                const taskDelegate = () => {};
 
-            // Act -----------
-            const task = Boot.task(taskDelegate);
+                // Act -----------
+                const task = Boot.task(taskDelegate);
 
-            // Assert --------
-            expect(task).not.toBeNull();
-            expect(task.delegate).toBe(taskDelegate);
-            expect(Object.isSealed(task)).toBeTruthy();
-            expect(Object.isFrozen(task)).toBeTruthy();
+                // Assert --------
+                expect(task).not.toBeNull();
+                expect(task.delegate).toBe(taskDelegate);
+                expect(Object.isSealed(task)).toBeTruthy();
+                expect(Object.isFrozen(task)).toBeTruthy();
+            });
+
+            // GIVEN: Asynchronous delegate.
+            // WHEN: Pass sync delegate to the task factory.
+            // THEN
+            //   - Task was created.
+            //   - Task has a delegate reference.
+            //   - Task is immutable (sealed & frozen).
+            test("A1.2. With async delegate", () => {
+                // Arrange --------
+                const asyncDelegate = async () => {};
+
+                // Act ------------
+                const task = Boot.task(asyncDelegate);
+
+                // Arrange --------
+                expect(task.delegate).toBe(asyncDelegate);
+                expect(Object.isSealed(task)).toBeTruthy();
+                expect(Object.isFrozen(task)).toBeTruthy();
+            });
         });
 
-        // GIVEN: Asynchronous delegate.
-        // WHEN: Pass sync delegate to the task factory.
-        // THEN
-        //   - Task was created.
-        //   - Task has a delegate reference.
-        //   - Task is immutable (sealed & frozen).
-        test("A2. Create a task with async delegate", () => {
-            // Arrange --------
-            const asyncDelegate = async () => {};
-
-            // Act ------------
-            const task = Boot.task(asyncDelegate);
-
-            // Arrange --------
-            expect(task.delegate).toBe(asyncDelegate);
-            expect(Object.isSealed(task)).toBeTruthy();
-            expect(Object.isFrozen(task)).toBeTruthy();
-        });
-
-        describe("A3. Determining the name of a task", () => {
+        describe("A2. Determining the name of a task", () => {
             // GIVEN: Delegate & expected task name.
             // WHEN: Create a task with a delegate
             //       and passing the task name in the factory options object.
             // THEN: The task was created with the specified name.
-            test("A3.1. Create a task with name", () => {
+            test("A2.1. Create a task with name", () => {
                 // Arrange ------
                 const expectedName = "MyTask";
 
@@ -68,7 +70,7 @@ describe("Boot", () => {
             // GIVEN: Named function as delegate.
             // WHEN: Create a task with the given delegate.
             // THEN: The task was created with the delegate name.
-            test("A3.2. Create a task with name from named function as delegate", () => {
+            test("A2.2. Create a task with name from named function as delegate", () => {
                 // Arrange ------
                 function init() {}
 
@@ -80,11 +82,11 @@ describe("Boot", () => {
             });
         });
 
-        describe("A4. Determining the priority of a task", () => {
+        describe("A3. Determining the priority of a task", () => {
             // GIVEN: Delegate.
             // WHEN: Create task without a priority definition.
             // THEN: The task has a default priority.
-            test("A4.1. Create a task with default priority", () => {
+            test("A3.1. Create a task with default priority", () => {
                 // Act --------
                 const task = Boot.task(() => {});
 
@@ -95,7 +97,7 @@ describe("Boot", () => {
             // GIVEN: Delegate & valid number as priority
             // WHEN: Create a task with a priority definition.
             // THEN: The task has the specified priority.
-            test("A4.2a. Create a task with a priority definition", () => {
+            test("A3.2a. Create a task with a priority definition", () => {
                 // Arrange --------
                 const expectedPriority = 42;
 
@@ -111,7 +113,7 @@ describe("Boot", () => {
             // GIVEN: Delegate & infinite priority value.
             // WHEN: Create a task with an infinite priority value.
             // THEN: The task has the specified priority.
-            test("A4.2b Create a task with an infinite priority value", () => {
+            test("A3.2b Create a task with an infinite priority value", () => {
                 // Arrange --------
                 const expectedPriority = Infinity;
 
@@ -127,7 +129,7 @@ describe("Boot", () => {
             // GIVEN: Delegate & NaN as priority
             // WHEN: Create a task with an NaN priority.
             // THEN: An error will be thrown.
-            test("A4.2c. Creating a task with an invalid priority will throw an error", () => {
+            test("A3.2c. Creating a task with an invalid priority will throw an error", () => {
                 // Arrange --------
                 const invalidPriority = NaN;
 
@@ -144,11 +146,11 @@ describe("Boot", () => {
             });
         });
 
-        describe("A5. Optional task flag", () => {
+        describe("A4. Optional task flag", () => {
             // GIVEN: Delegate.
             // WHEN: Create a task without optional flag.
             // THEN: The important task will be created.
-            test("A5.1. Create an important/default task", () => {
+            test("A4.1. Create an important/default task", () => {
                 // Act ------------
                 const task = Boot.task(() => {});
 
@@ -159,7 +161,7 @@ describe("Boot", () => {
             // GIVEN: Delegate.
             // WHEN: Create a task with optional flag.
             // THEN: The important task will be created.
-            test("A5.2. Create a task with optional flag", () => {
+            test("A4.2. Create a task with optional flag", () => {
                 // Act ------------
                 const task = Boot.task(() => {}, { optional: true });
 
@@ -168,9 +170,9 @@ describe("Boot", () => {
             });
         });
 
-        describe("A6. Task's dependencies definition", () => {
+        describe("A5. Task's dependencies definition", () => {
             // WHEN: Create task without dependencies
-            test("A6.0. Task have no dependencies by default", () => {
+            test("A5.1. Task have no dependencies by default", () => {
                 // Act ----------
                 const task = Boot.task(() => {});
 
@@ -178,7 +180,7 @@ describe("Boot", () => {
                 expect(task.dependencies.length).toBe(0);
             });
 
-            test("A6.1a. Add single dependency in params", () => {
+            test("A5.2a. Add single dependency in params", () => {
                 // Arrange --------------
                 const taskD = Boot.task(() => {});
 
@@ -192,7 +194,7 @@ describe("Boot", () => {
                 expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
             });
 
-            test("A6.1b. Add many dependencies in params", () => {
+            test("A5.2b. Add many dependencies in params", () => {
                 // Arrange ------------
                 const taskA = Boot.task(() => {});
                 const taskB = Boot.task(() => {});
@@ -212,7 +214,7 @@ describe("Boot", () => {
                 expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
             });
 
-            test("A6.1c. Pass an empty array as dependencies in params", () => {
+            test("A5.2c. Pass an empty array as dependencies in params", () => {
                 // Act ----------------
                 const task = Boot.task(() => {}, []);
 
@@ -220,7 +222,7 @@ describe("Boot", () => {
                 expect(task.dependencies.length).toBe(0);
             });
 
-            test("A6.2a. Add dependency in factory options", () => {
+            test("A5.3a. Add dependency in factory options", () => {
                 // Arrange --------
                 const taskD = Boot.task(() => {});
 
@@ -232,7 +234,7 @@ describe("Boot", () => {
                 expect(task.dependencies[0].task).toBe(taskD);
             });
 
-            test("A6.2b. Add many dependencies in params", () => {
+            test("A5.3b. Add many dependencies in params", () => {
                 // Arrange ------------
                 const taskA = Boot.task(() => {});
                 const taskB = Boot.task(() => {});
@@ -247,7 +249,7 @@ describe("Boot", () => {
                 expect(hasDependency(task, taskB)).toBeTruthy();
             });
 
-            test("A6.2c. Pass an empty array as dependencies in factory options", () => {
+            test("A5.3c. Pass an empty array as dependencies in factory options", () => {
                 // Act ----------------
                 const task = Boot.task(() => {}, { deps: [] });
 
@@ -255,7 +257,7 @@ describe("Boot", () => {
                 expect(task.dependencies.length).toBe(0);
             });
 
-            test("A6.3a. Add dependency with params wrapper", () => {
+            test("A5.4a. Add dependency with params wrapper", () => {
                 // Arrange ------------
                 const taskD = Boot.task(() => {});
 
@@ -269,7 +271,7 @@ describe("Boot", () => {
                 expect(Object.isFrozen(task.dependencies[0])).toBeTruthy();
             });
 
-            test("A6.3a. Add many dependencies with params wrappers", () => {
+            test("A5.4a. Add many dependencies with params wrappers", () => {
                 // Arrange ------------
                 const taskA = Boot.task(() => {});
                 const taskB = Boot.task(() => {});
@@ -292,7 +294,7 @@ describe("Boot", () => {
                 expect(Object.isFrozen(task.dependencies[1])).toBeTruthy();
             });
 
-            test("A6.4. Mixed dependencies format", () => {
+            test("A5.5. Mixed dependencies format", () => {
                 // Arrange ---------
                 const taskA = Boot.task(() => {});
                 const taskB = Boot.task(() => {});
@@ -313,8 +315,8 @@ describe("Boot", () => {
             });
         });
 
-        describe("A7. Weak dependency", () => {
-            test("A7.1a. Strong dependency by default", () => {
+        describe("A6. Weak dependency", () => {
+            test("A6.1a. Strong dependency by default", () => {
                 // Arrange --------
                 const taskD = Boot.task(() => {});
 
@@ -326,7 +328,7 @@ describe("Boot", () => {
                 expect(task.dependencies[0].weak).toBeFalsy();
             });
 
-            test("A7.1b. Mark a dependency as weak", () => {
+            test("A6.1b. Mark a dependency as weak", () => {
                 // Arrange ------
                 const taskD = Boot.task(() => {});
 
@@ -338,7 +340,7 @@ describe("Boot", () => {
                 expect(task.dependencies[0].weak).toBeTruthy();
             });
 
-            test("A7.2a. An important task should not have a strong dependency on an optional task", () => {
+            test("A6.2a. An important task should not have a strong dependency on an optional task", () => {
                 // Arrange ------
                 const optionalTask = Boot.task(() => {}, { optional: true });
 
@@ -354,7 +356,7 @@ describe("Boot", () => {
                 expect(error).not.toBeNull();
             });
 
-            test("A7.2b. An important task may have a weak dependency on an optional task", () => {
+            test("A6.2b. An important task may have a weak dependency on an optional task", () => {
                 // Arrange ------
                 const optionalTask = Boot.task(() => {}, { optional: true });
 
@@ -375,7 +377,7 @@ describe("Boot", () => {
         //   - The boot instance was created
         //   - The boot instance is in "Idle" state
         //   - The boot instance have no boot tasks yet
-        test("Create new instance of 'Boot'", () => {
+        test("B1. Create new instance of 'Boot'", () => {
             // Act -----------
             const boot = new Boot();
 
