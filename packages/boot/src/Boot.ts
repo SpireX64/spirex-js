@@ -212,9 +212,13 @@ export class Boot {
 
     public has(task: TBootTask): boolean {
         return (
-            this._nodes.some((it) => it.task === task) ||
+            this.isReachable(task) ||
             this._unreachableNodes.some((it) => it.task === task)
         );
+    }
+
+    public isReachable(task: TBootTask): boolean {
+        return this._nodes.some((it) => it.task === task);
     }
 
     // endregion: PUBLIC METHODS
@@ -254,15 +258,17 @@ export class Boot {
                 (it) => it.task === dependencyTask.task,
             );
 
-            if (!dependencyNode)
+            if (!dependencyNode) {
                 dependencyNode = this._unreachableNodes.find(
                     (it) => it.task === dependencyTask.task,
                 );
+                isResolved = false;
+            }
 
             if (dependencyNode) {
                 node.awaiting.push(dependencyNode);
                 dependencyNode.children.push(node);
-            } else {
+            } else if (!dependencyTask.weak) {
                 isResolved = false;
             }
         }
@@ -275,27 +281,52 @@ export class Boot {
         for (let i = 0; i < this._unreachableNodes.length; i++) {
             const unreachableNode = this._unreachableNodes[i];
 
+            // Найдена зависимость от текущего узла
             const matched = unreachableNode.task.dependencies.some(
                 (it) => it.task === node.task,
             );
             if (!matched) continue;
 
-            unreachableNode.awaiting.push(node);
-            node.children.push(unreachableNode);
+            // Связываем узлы
+            if (!unreachableNode.awaiting.includes(node)) {
+                unreachableNode.awaiting.push(node);
+                node.children.push(unreachableNode);
+            }
 
+            // Проверяем, все ли зависимости текущего узла разрешены
             const allDependenciesResolved =
                 unreachableNode.awaiting.length ===
-                unreachableNode.task.dependencies.length;
+                unreachableNode.task.dependencies.filter((it) => !it.weak)
+                    .length;
 
+            // Если нет, узел остается неразрешенным
             if (!allDependenciesResolved) continue;
 
+            // Узел разрешен. Переносим в список разрешенных узлов
             delete this._unreachableNodes[i];
             this._nodes.push(unreachableNode);
+
+            // Указываем, есть разрешенный узел, для обновления списка неразрешенных узлов
             isAnyChildResolved = true;
         }
 
-        if (isAnyChildResolved)
+        if (isAnyChildResolved) {
+            // Обновляем список неразрешенных узлов
             this._unreachableNodes = this._unreachableNodes.filter(Boolean);
+            // Обновляем дочерние узлы
+            node.children.forEach((it) => this.updateNodeChildren(it));
+        }
+
+        // Обновляем связи в разрешенных узлах
+        this._nodes.forEach((it) => {
+            if (
+                it.task.dependencies.some((it) => it.task === node.task) &&
+                !it.awaiting.includes(node)
+            ) {
+                it.awaiting.push(node);
+                node.children.push(it);
+            }
+        });
     }
     // endregion: PRIVATE METHODS
 }

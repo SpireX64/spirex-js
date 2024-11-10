@@ -497,5 +497,129 @@ describe("Boot", () => {
                 expect(boot.has(task)).toBeTruthy();
             });
         });
+
+        describe("C4. Monitoring task reachability", () => {
+            test("C4.1. A task not added to a process is unreachable", () => {
+                // Arrange ------------
+                const boot = new Boot();
+                const task = Boot.task(() => {});
+
+                // Assert -------------
+                expect(boot.has(task)).toBeFalsy();
+                expect(boot.isReachable(task)).toBeFalsy();
+            });
+
+            test("C4.2a. A task without dependencies is always reachable", () => {
+                // Arrange -------------
+                const boot = new Boot();
+                const task = Boot.task(() => {});
+
+                // Act -----------------
+                boot.add(task);
+
+                // Assert --------------
+                expect(boot.isReachable(task)).toBeTruthy();
+            });
+
+            test("C4.2b. If all task dependencies are added to the process, the task is reachable", () => {
+                // Arrange -------------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const task = Boot.task(() => {}, [taskA, taskB]);
+
+                // Act ----------------
+                boot.add([task, taskA, taskB]);
+
+                // Assert -------------
+                expect(boot.isReachable(task)).toBeTruthy();
+            });
+
+            test("C4.3a. If at least one strong dependency is not added to the process, the task is unreachable.", () => {
+                // Arrange ----------------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const task = Boot.task(() => {}, [taskA, taskB]);
+
+                // Act --------------------
+                boot.add([task, taskA]);
+
+                // Assert -----------------
+                expect(boot.isReachable(task)).toBeFalsy();
+            });
+
+            test("C4.3b. If dependencies of an unreachable task are added later, the task becomes reachable", () => {
+                // Arrange -------------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const task = Boot.task(() => {}, [taskA, taskB]);
+                boot.add([task, taskA]);
+
+                // Act ----------------
+                const isReachableBefore = boot.isReachable(task);
+                boot.add(taskB);
+                const isReachableAfter = boot.isReachable(task);
+
+                // Assert -------------
+                expect(isReachableBefore).toBeFalsy();
+                expect(isReachableAfter).toBeTruthy();
+            });
+
+            test("C4.4. If only weak dependencies are not added to the process, the task is reachable", () => {
+                // Arrange -----------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {});
+                const task = Boot.task(() => {}, [
+                    taskA,
+                    { task: taskB, weak: true },
+                ]);
+
+                // Act ---------------
+                boot.add([task, taskA]);
+
+                // Assert ------------
+                expect(boot.isReachable(task)).toBeTruthy();
+            });
+
+            test("C4.5a. If a task has a strong dependency on an unreachable task, then the task is unreachable", () => {
+                // Arrange -------------
+                const boot = new Boot();
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {}, [taskA]);
+                const task = Boot.task(() => {}, [taskB]);
+
+                // Act -----------------
+                boot.add([taskB, task]);
+
+                // Assert --------------
+                expect(boot.has(taskB)).toBeTruthy();
+                expect(boot.isReachable(taskB)).toBeFalsy();
+                expect(boot.isReachable(task)).toBeFalsy();
+            });
+
+            test("C4.5b. When dependency task becomes reachable, then the task becomes reachable too", () => {
+                // Arrange -------------
+                const taskA = Boot.task(() => {});
+                const taskB = Boot.task(() => {}, [taskA]);
+                const task = Boot.task(() => {}, [taskB]);
+                const boot = new Boot().add([taskB, task]);
+
+                // Act -----------------
+                const isTaskBReachableBefore = boot.isReachable(taskB);
+                const isTaskReachableBefore = boot.isReachable(task);
+                boot.add(taskA);
+                const isTaskBReachableAfter = boot.isReachable(taskB);
+                const isTaskReachableAfter = boot.isReachable(task);
+
+                // Assert --------------
+                expect(isTaskBReachableBefore).toBeFalsy();
+                expect(isTaskReachableBefore).toBeFalsy();
+                expect(isTaskBReachableAfter).toBeTruthy();
+                expect(isTaskReachableAfter).toBeTruthy();
+            });
+        });
     });
 });
