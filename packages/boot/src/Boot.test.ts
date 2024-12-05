@@ -3,12 +3,39 @@
 import {
     Boot,
     BootState,
-    type TFalsy,
     DEFAULT_TASK_PRIORITY,
     hasDependency,
+    TaskStatus,
 } from "./Boot";
 
+const noop = () => {};
+const tasksPool = new Array(10000)
+    .fill(null)
+    .map((_, i) => Boot.task(noop, { name: `task_${i}` }))
+    .map((it, i, arr) => [
+        it,
+        Boot.task(noop, { name: `childOf_${it.name}`, deps: [it] }),
+    ])
+    .flat()
+    .map((it, i, arr) => [
+        it,
+        Boot.task(noop, { name: `childOf_${it.name}`, deps: [it] }),
+    ])
+    .flat()
+    .reverse();
+
 describe("Boot", () => {
+    test("Playground", async () => {
+        const boot = new Boot();
+        // ----------
+        for (let i = 0; i < tasksPool.length; i++) {
+            const task = tasksPool[i];
+            boot.add(task);
+        }
+
+        await boot.runAsync();
+    });
+
     describe("A. Creating Tasks", () => {
         describe("A1. Create a task with delegate", () => {
             // GIVEN: Synchronous delegate.
@@ -498,128 +525,93 @@ describe("Boot", () => {
             });
         });
 
-        describe("C4. Monitoring task reachability", () => {
-            test("C4.1. A task not added to a process is unreachable", () => {
-                // Arrange ------------
+        describe("C4. Check is task in the process", () => {
+            test("C4a. Task not added to process", () => {
+                // Arrange ---------
                 const boot = new Boot();
                 const task = Boot.task(() => {});
 
-                // Assert -------------
-                expect(boot.has(task)).toBeFalsy();
-                expect(boot.isReachable(task)).toBeFalsy();
-            });
-
-            test("C4.2a. A task without dependencies is always reachable", () => {
-                // Arrange -------------
-                const boot = new Boot();
-                const task = Boot.task(() => {});
-
-                // Act -----------------
-                boot.add(task);
-
-                // Assert --------------
-                expect(boot.isReachable(task)).toBeTruthy();
-            });
-
-            test("C4.2b. If all task dependencies are added to the process, the task is reachable", () => {
-                // Arrange -------------
-                const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const task = Boot.task(() => {}, [taskA, taskB]);
-
-                // Act ----------------
-                boot.add([task, taskA, taskB]);
-
-                // Assert -------------
-                expect(boot.isReachable(task)).toBeTruthy();
-            });
-
-            test("C4.3a. If at least one strong dependency is not added to the process, the task is unreachable.", () => {
-                // Arrange ----------------
-                const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const task = Boot.task(() => {}, [taskA, taskB]);
-
-                // Act --------------------
-                boot.add([task, taskA]);
-
-                // Assert -----------------
-                expect(boot.isReachable(task)).toBeFalsy();
-            });
-
-            test("C4.3b. If dependencies of an unreachable task are added later, the task becomes reachable", () => {
-                // Arrange -------------
-                const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const task = Boot.task(() => {}, [taskA, taskB]);
-                boot.add([task, taskA]);
-
-                // Act ----------------
-                const isReachableBefore = boot.isReachable(task);
-                boot.add(taskB);
-                const isReachableAfter = boot.isReachable(task);
-
-                // Assert -------------
-                expect(isReachableBefore).toBeFalsy();
-                expect(isReachableAfter).toBeTruthy();
-            });
-
-            test("C4.4. If only weak dependencies are not added to the process, the task is reachable", () => {
-                // Arrange -----------
-                const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const task = Boot.task(() => {}, [
-                    taskA,
-                    { task: taskB, weak: true },
-                ]);
-
-                // Act ---------------
-                boot.add([task, taskA]);
+                // Act --------------
+                const processHasTask = boot.has(task);
 
                 // Assert ------------
-                expect(boot.isReachable(task)).toBeTruthy();
+                expect(processHasTask).toBeFalsy();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Unknown);
             });
 
-            test("C4.5a. If a task has a strong dependency on an unreachable task, then the task is unreachable", () => {
-                // Arrange -------------
-                const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {}, [taskA]);
-                const task = Boot.task(() => {}, [taskB]);
+            test("C4b. Task added to process", () => {
+                // Arrange ----------
+                const task = Boot.task(() => {});
+                const boot = new Boot().add(task);
 
-                // Act -----------------
-                boot.add([taskB, task]);
+                // Act -------------
+                const processHasTask = boot.has(task);
 
-                // Assert --------------
-                expect(boot.has(taskB)).toBeTruthy();
-                expect(boot.isReachable(taskB)).toBeFalsy();
-                expect(boot.isReachable(task)).toBeFalsy();
+                // Assert ----------
+                expect(processHasTask).toBeTruthy();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Idle);
             });
+        });
+    });
 
-            test("C4.5b. When dependency task becomes reachable, then the task becomes reachable too", () => {
-                // Arrange -------------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {}, [taskA]);
-                const task = Boot.task(() => {}, [taskB]);
-                const boot = new Boot().add([taskB, task]);
+    describe("D. Running", () => {
+        test("D1. Run without tasks", async () => {
+            // Arrange ------------
+            const boot = new Boot();
 
-                // Act -----------------
-                const isTaskBReachableBefore = boot.isReachable(taskB);
-                const isTaskReachableBefore = boot.isReachable(task);
-                boot.add(taskA);
-                const isTaskBReachableAfter = boot.isReachable(taskB);
-                const isTaskReachableAfter = boot.isReachable(task);
+            // Act ----------------
+            await boot.runAsync();
 
-                // Assert --------------
-                expect(isTaskBReachableBefore).toBeFalsy();
-                expect(isTaskReachableBefore).toBeFalsy();
-                expect(isTaskBReachableAfter).toBeTruthy();
-                expect(isTaskReachableAfter).toBeTruthy();
-            });
+            // Assert -------------
+            expect(boot.state).toBe(BootState.Completed);
+        });
+
+        test("D2a. Run with sync task", async () => {
+            // Arrange ------------
+            const syncDelegate = jest.fn();
+            const syncTask = Boot.task(syncDelegate);
+            const boot = new Boot().add(syncTask);
+
+            // Act ----------
+            await boot.runAsync();
+
+            // Assert -------
+            expect(syncDelegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(syncTask)).toBe(TaskStatus.Completed);
+        });
+
+        test("D2b. Run with async task", async () => {
+            // Arrange ----------
+            const asyncTaskDelegate = jest.fn(async () => {});
+            const asyncTask = Boot.task(asyncTaskDelegate);
+            const boot = new Boot().add(asyncTask);
+
+            // Act --------------
+            await boot.runAsync();
+
+            // Assert -----------
+            expect(asyncTaskDelegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(asyncTask)).toBe(TaskStatus.Completed);
+        });
+
+        test("D3. Run with many tasks", async () => {
+            // Arrange ------------
+            const syncTaskADelegate = jest.fn();
+            const taskA = Boot.task(syncTaskADelegate);
+            const syncTaskBDelegate = jest.fn();
+            const taskB = Boot.task(syncTaskBDelegate);
+
+            const boot = new Boot().add(taskA).add(taskB);
+
+            // Act ----------------
+            await boot.runAsync();
+
+            // Assert -------------
+            expect(syncTaskADelegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+
+            expect(syncTaskBDelegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
         });
     });
 });

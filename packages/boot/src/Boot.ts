@@ -54,19 +54,23 @@ export enum BootState {
     /** The boot process is currently running. */
     Running,
     /** The boot process has completed. */
-    Done,
+    Completed,
 }
 
-enum BootTaskState {
+export enum TaskStatus {
+    Unknown,
     Idle,
+    Running,
+    Completed,
+    Fail,
 }
 
 /** @internal */
-type TBootTaskNode = {
-    task: TBootTask;
-    state: BootTaskState;
-    awaiting: TBootTaskNode[];
-    children: TBootTaskNode[];
+type TTaskState = {
+    /** Current task state */
+    status: TaskStatus;
+    /** Other tasks that will be queued after the current one is completed */
+    awaiters: TBootTask[];
 };
 
 const ERR_BOOT_STARTED = "Boot process already started";
@@ -85,6 +89,9 @@ export function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
 
 export class Boot {
     // region: STATIC METHODS
+    private _processPromise?: Promise<unknown>;
+    private _processResolve?: () => void;
+    private _processReject?: () => void;
 
     /**
      * Creates a boot task with optional configuration options.
@@ -153,10 +160,10 @@ export class Boot {
 
     /** @internal */
     private _state: BootState = BootState.Idle;
-    /** @internal */
-    private _nodes: TBootTaskNode[] = [];
-    /** @internal */
-    private _unreachableNodes: TBootTaskNode[] = [];
+
+    private _tasksSet = new Set<TBootTask>();
+
+    private _tasksStateMap = new Map<TBootTask, TTaskState>();
 
     // endregion: FIELDS
 
@@ -164,7 +171,7 @@ export class Boot {
 
     /** Retrieves the number of process tasks. */
     public get tasksCount(): number {
-        return this._nodes.length;
+        return this._tasksSet.size;
     }
 
     /**
@@ -211,14 +218,31 @@ export class Boot {
     }
 
     public has(task: TBootTask): boolean {
-        return (
-            this.isReachable(task) ||
-            this._unreachableNodes.some((it) => it.task === task)
-        );
+        return this._tasksSet.has(task);
     }
 
-    public isReachable(task: TBootTask): boolean {
-        return this._nodes.some((it) => it.task === task);
+    public getTaskStatus(task: TBootTask): TaskStatus {
+        const state = this._tasksStateMap.get(task);
+        return state?.status ?? TaskStatus.Unknown;
+    }
+
+    public async runAsync() {
+        const rootTasks = this.findRootTasksAndBindAwaiters();
+
+        if (rootTasks.length === 0) {
+            this._state = BootState.Completed;
+            return Promise.resolve();
+        }
+
+        const promise = this.createPromise();
+        this._state = BootState.Running;
+        this.processTasks(rootTasks);
+
+        await this._processPromise;
+
+        this._processResolve?.();
+        this._state = BootState.Completed;
+        return promise;
     }
 
     // endregion: PUBLIC METHODS
@@ -227,106 +251,58 @@ export class Boot {
 
     /** @internal */
     private addTaskToProcess(task: TBootTask): void {
-        const isExists = this._nodes.find((it) => it.task === task) != null;
-        if (isExists) return;
-
-        const node: TBootTaskNode = {
-            task,
-            state: BootTaskState.Idle,
-            awaiting: [],
-            children: [],
-        };
-
-        if (this.resolveNodeDependencies(node)) {
-            this._nodes.push(node);
-        } else {
-            this._unreachableNodes.push(node);
-        }
-
-        this.updateNodeChildren(node);
-    }
-
-    /** @internal */
-    private resolveNodeDependencies(node: TBootTaskNode): boolean {
-        let isResolved = true;
-        const deps = node.task.dependencies;
-        for (let i = 0; i < deps.length; i++) {
-            const dependencyTask = deps[i];
-
-            let dependencyNode: TBootTaskNode | TNullable;
-            dependencyNode = this._nodes.find(
-                (it) => it.task === dependencyTask.task,
-            );
-
-            if (!dependencyNode) {
-                dependencyNode = this._unreachableNodes.find(
-                    (it) => it.task === dependencyTask.task,
-                );
-                isResolved = false;
-            }
-
-            if (dependencyNode) {
-                node.awaiting.push(dependencyNode);
-                dependencyNode.children.push(node);
-            } else if (!dependencyTask.weak) {
-                isResolved = false;
-            }
-        }
-        return isResolved;
-    }
-
-    /** @internal */
-    private updateNodeChildren(node: TBootTaskNode): void {
-        let isAnyChildResolved = false;
-        for (let i = 0; i < this._unreachableNodes.length; i++) {
-            const unreachableNode = this._unreachableNodes[i];
-
-            // Найдена зависимость от текущего узла
-            const matched = unreachableNode.task.dependencies.some(
-                (it) => it.task === node.task,
-            );
-            if (!matched) continue;
-
-            // Связываем узлы
-            if (!unreachableNode.awaiting.includes(node)) {
-                unreachableNode.awaiting.push(node);
-                node.children.push(unreachableNode);
-            }
-
-            // Проверяем, все ли зависимости текущего узла разрешены
-            const allDependenciesResolved =
-                unreachableNode.awaiting.length ===
-                unreachableNode.task.dependencies.filter((it) => !it.weak)
-                    .length;
-
-            // Если нет, узел остается неразрешенным
-            if (!allDependenciesResolved) continue;
-
-            // Узел разрешен. Переносим в список разрешенных узлов
-            delete this._unreachableNodes[i];
-            this._nodes.push(unreachableNode);
-
-            // Указываем, есть разрешенный узел, для обновления списка неразрешенных узлов
-            isAnyChildResolved = true;
-        }
-
-        if (isAnyChildResolved) {
-            // Обновляем список неразрешенных узлов
-            this._unreachableNodes = this._unreachableNodes.filter(Boolean);
-            // Обновляем дочерние узлы
-            node.children.forEach((it) => this.updateNodeChildren(it));
-        }
-
-        // Обновляем связи в разрешенных узлах
-        this._nodes.forEach((it) => {
-            if (
-                it.task.dependencies.some((it) => it.task === node.task) &&
-                !it.awaiting.includes(node)
-            ) {
-                it.awaiting.push(node);
-                node.children.push(it);
-            }
+        this._tasksSet.add(task);
+        this._tasksStateMap.set(task, {
+            status: TaskStatus.Idle,
+            awaiters: [],
         });
     }
+
+    /** @internal */
+    private createPromise(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._processResolve = resolve;
+            this._processReject = reject;
+        });
+    }
+
+    /** @internal */
+    private findRootTasksAndBindAwaiters(): readonly TBootTask[] {
+        const roots: TBootTask[] = [];
+        this._tasksSet.forEach((task) => {
+            if (task.dependencies.length === 0) roots.push(task);
+            else
+                for (const dependency of task.dependencies) {
+                    const dependencyState = this._tasksStateMap.get(
+                        dependency.task,
+                    );
+                    if (dependencyState) dependencyState.awaiters.push(task);
+                }
+        });
+        return roots;
+    }
+
+    /** @internal */
+    private processTasks(tasks: readonly TBootTask[]): void {
+        const taskPromises = tasks.map(async (task) => {
+            const taskState = this._tasksStateMap.get(task)!;
+            taskState.status = TaskStatus.Running;
+            try {
+                const mayBePromise = task.delegate();
+                if (isPromise(task)) await mayBePromise;
+                taskState.status = TaskStatus.Completed;
+            } catch (error) {
+                taskState.status = TaskStatus.Fail;
+            }
+        });
+
+        this.updateProcessPromise(taskPromises);
+    }
+
+    private updateProcessPromise(tasksPromises: Promise<unknown>[]): void {
+        if (this._processPromise) tasksPromises.push(this._processPromise);
+        this._processPromise = Promise.all(tasksPromises);
+    }
+
     // endregion: PRIVATE METHODS
 }
