@@ -294,10 +294,13 @@ export class Boot {
     /**
      * Executes all registered tasks in the correct order based on their dependencies.
      * @returns A promise that resolves when the boot process is complete or rejects on failure.
+     *
+     * @throws {Error} If process already started
      */
     public async runAsync(): Promise<void> {
-        const rootTasks = this.findRootTasksAndLinkAwaiters();
+        if (this._status !== BootStatus.Idle) throw new Error(ERR_BOOT_STARTED);
 
+        const rootTasks = this.findRootTasksAndLinkAwaiters();
         if (rootTasks.length === 0) return this.handleEmptyRootState();
 
         const promise = this.createPromise();

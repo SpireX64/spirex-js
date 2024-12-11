@@ -1489,5 +1489,19 @@ describe("Boot", () => {
                 });
             });
         });
+
+        test("D6. Start process when it's already running", async () => {
+            // Arrange -------------
+            const boot = new Boot();
+            const promise = boot.runAsync();
+
+            // Act -----------------
+            const error = await catchErrorAsync(() => boot.runAsync());
+            await promise;
+
+            // Assert --------------
+            expect(error).not.toBeUndefined();
+            expect(boot.status).toBe(BootStatus.Completed);
+        });
     });
 });
