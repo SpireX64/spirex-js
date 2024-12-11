@@ -1490,7 +1490,160 @@ describe("Boot", () => {
             });
         });
 
-        test("D6. Start process when it's already running", async () => {
+        describe("D6. Tasks graph execution", () => {
+            test("D6.1. Deep tasks graph execution", async () => {
+                // Tasks Graph:
+                //     A ---- C ---- D ---- F
+                //     B --/     \-- E --/
+
+                // Arrange -------------
+                const taskA = Boot.task(jest.fn(), { name: "A" });
+                const taskB = Boot.task(jest.fn(), { name: "B" });
+                const taskC = Boot.task(jest.fn(), {
+                    name: "C",
+                    deps: [taskA, taskB],
+                });
+                const taskD = Boot.task(jest.fn(), {
+                    name: "D",
+                    deps: [taskC],
+                });
+                const taskE = Boot.task(jest.fn(), {
+                    name: "E",
+                    deps: [taskC],
+                });
+                const taskF = Boot.task(jest.fn(), {
+                    name: "F",
+                    deps: [taskD, taskE],
+                });
+
+                const boot = new Boot().add([
+                    taskA,
+                    taskB,
+                    taskC,
+                    taskD,
+                    taskE,
+                    taskF,
+                ]);
+
+                // Act -----------------
+                await boot.runAsync();
+
+                // Assert --------------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskD)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskE)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskF)).toBe(TaskStatus.Completed);
+            });
+
+            test("D6.2. Deep tasks execution with priority", async () => {
+                // Tasks Graph:
+                //     A ---- B(2)
+                //        \-- C(1) ---- E
+                //        \-- D(3) --/
+
+                // Arrange -----
+                let executionSequence = "";
+                const taskA = Boot.task(
+                    () => {
+                        executionSequence += "A";
+                    },
+                    { name: "A" },
+                );
+                const taskB = Boot.task(
+                    () => {
+                        executionSequence += "B";
+                    },
+                    { name: "B", priority: 2, deps: [taskA] },
+                );
+                const taskC = Boot.task(
+                    () => {
+                        executionSequence += "C";
+                    },
+                    { name: "C", priority: 1, deps: [taskA] },
+                );
+                const taskD = Boot.task(
+                    () => {
+                        executionSequence += "D";
+                    },
+                    { name: "D", priority: 3, deps: [taskA] },
+                );
+                const taskE = Boot.task(
+                    () => {
+                        executionSequence += "E";
+                    },
+                    { name: "E" },
+                );
+
+                const boot = new Boot().add([
+                    taskA,
+                    taskB,
+                    taskC,
+                    taskD,
+                    taskE,
+                ]);
+
+                // Act ---------
+                await boot.runAsync();
+
+                // Assert ------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(executionSequence).toBe("ACBDE");
+                expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskD)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskE)).toBe(TaskStatus.Completed);
+            });
+
+            test("D6.3. Deep tasks execution with skipped tasks", async () => {
+                // Arrange ------
+                const taskA = Boot.task(() => {}, { name: "A" });
+                const taskB = Boot.task(
+                    () => {
+                        throw Error();
+                    },
+                    { name: "B", optional: true },
+                );
+                const taskC = Boot.task(() => {}, {
+                    name: "C",
+                    deps: [taskA, { task: taskB, weak: true }],
+                });
+                const taskD = Boot.task(() => {}, {
+                    name: "D",
+                    optional: true,
+                    deps: [taskB],
+                });
+                const taskE = Boot.task(() => {}, {
+                    name: "E",
+                    optional: true,
+                    deps: [taskC, { task: taskD, weak: true }],
+                });
+
+                const boot = new Boot().add([
+                    taskA,
+                    taskB,
+                    taskC,
+                    taskD,
+                    taskE,
+                ]);
+
+                // Act ----------
+                await boot.runAsync();
+
+                // Assert -------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Fail);
+                expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskD)).toBe(TaskStatus.Skipped);
+                expect(boot.getTaskStatus(taskE)).toBe(TaskStatus.Completed);
+            });
+        });
+
+        test("D7. Start process when it's already running", async () => {
             // Arrange -------------
             const boot = new Boot();
             const promise = boot.runAsync();

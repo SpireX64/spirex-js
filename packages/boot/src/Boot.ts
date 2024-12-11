@@ -511,7 +511,7 @@ export class Boot {
         this._awaitersQueue = newAwaitersQueue;
 
         if (tasksToProcess.length > 0) {
-            this.processTasks(tasksToProcess);
+            this.processTasks(tasksToProcess.sort(comparePriority));
         } else if (this._awaitersQueue.length === 0) {
             this.finalize();
         }
