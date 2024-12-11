@@ -7,17 +7,23 @@ export type TNullable = null | undefined;
  */
 export type TFalsy = TNullable | false | 0;
 
+export type TBootTaskDelegateParams = {
+    abortSignal?: AbortSignal;
+};
+
 /**
  * A delegate function representing a synchronous boot task.
  * This function performs an operation without returning a Promise.
  */
-export type TBootTaskSyncDelegate = () => void;
+export type TBootTaskSyncDelegate = (params: TBootTaskDelegateParams) => void;
 
 /**
  * A delegate function representing an asynchronous boot task.
  * This function returns a Promise, signaling when the task is complete.
  */
-export type TBootTaskAsyncDelegate = () => Promise<void>;
+export type TBootTaskAsyncDelegate = (
+    params: TBootTaskDelegateParams,
+) => Promise<void>;
 
 /** A union of synchronous and asynchronous boot task delegate functions. */
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
@@ -50,6 +56,10 @@ export type TBootTaskOptions = {
     deps?: readonly TBootTaskDependencyUnion[];
 };
 
+export type TBootProcessOptions = {
+    abortSignal?: AbortSignal;
+};
+
 /**
  * Representing the possible states of the boot process.
  * @enum {number}
@@ -65,6 +75,8 @@ export enum BootStatus {
     Completed,
     /** The boot process execution failed */
     Fail,
+    /** The boot process execution cancelled with abort signal */
+    Cancelled,
 }
 
 export enum TaskStatus {
@@ -94,6 +106,7 @@ const ERR_STRONG_DEPENDENCY_OPTIONAL_TASK =
     "An important task should not have a strong dependency on an optional task.";
 const ERR_IMPORTANT_TASK_FAIL = "Important task fail";
 const ERR_IMPORTANT_TASK_SKIPPED = "Important task skipped";
+const ERR_PROCESS_CANCELLED = "Process was cancelled";
 
 export const DEFAULT_TASK_PRIORITY: number = 0;
 
@@ -213,6 +226,9 @@ export class Boot {
     /** Process promise reject delegate */
     private _processReject?: (reason: Error) => void;
 
+    /** Abort signal */
+    private _abortSignal?: AbortSignal;
+
     // endregion: FIELDS
 
     // region: PROPERTIES
@@ -297,7 +313,7 @@ export class Boot {
      *
      * @throws {Error} If process already started
      */
-    public async runAsync(): Promise<void> {
+    public async runAsync(options?: TBootProcessOptions): Promise<void> {
         if (this._status !== BootStatus.Idle) throw new Error(ERR_BOOT_STARTED);
 
         const rootTasks = this.findRootTasksAndLinkAwaiters();
@@ -305,6 +321,7 @@ export class Boot {
 
         const promise = this.createPromise();
         this._status = BootStatus.Running;
+        this._abortSignal = options?.abortSignal;
         this.processTasks(rootTasks);
 
         return promise;
@@ -415,7 +432,9 @@ export class Boot {
             taskState.status = TaskStatus.Running;
             try {
                 // Запускаем делегат задачи.
-                const mayBePromise = task.delegate();
+                const mayBePromise = task.delegate({
+                    abortSignal: this._abortSignal,
+                });
 
                 // Если делегат возвращает Promise, ждем его завершения.
                 if (isPromise(mayBePromise)) await mayBePromise;
@@ -425,7 +444,13 @@ export class Boot {
                 taskState.failReason = error as Error;
                 if (!task.optional) {
                     this.fail(ERR_IMPORTANT_TASK_FAIL);
+                    return;
                 }
+            }
+
+            if (this._abortSignal?.aborted) {
+                this.cancelProcess();
+                return;
             }
 
             this.runAwaiters();
@@ -435,6 +460,7 @@ export class Boot {
         this.updateProcessPromise(taskPromises);
     }
 
+    /** @internal */
     private prepareAwaiters(tasks: readonly TBootTask[]): void {
         tasks.forEach((task) => {
             const state = this._tasksStateMap.get(task)!;
@@ -444,6 +470,7 @@ export class Boot {
         });
     }
 
+    /** @internal */
     private runAwaiters(): void {
         if (this._awaitersQueue.length === 0) {
             this.finalize();
@@ -538,6 +565,17 @@ export class Boot {
         this._processResolve?.();
     }
 
+    /** @internal */
+    private disposeAwaitersQueue(reason: Error): void {
+        if (this._awaitersQueue.length <= 0) return;
+        this._awaitersQueue.forEach((task) => {
+            const state = this._tasksStateMap.get(task)!;
+            state.status = task.optional ? TaskStatus.Skipped : TaskStatus.Fail;
+            state.failReason = reason;
+        });
+        this._awaitersQueue.length = 0;
+    }
+
     /**
      * Marks the boot process as failed and updates the status of all pending tasks.
      *
@@ -548,23 +586,22 @@ export class Boot {
      * @internal
      */
     private fail(err: string): void {
-        const errorObject = Error(err);
-
-        if (this._awaitersQueue.length > 0) {
-            this._awaitersQueue.forEach((task) => {
-                const state = this._tasksStateMap.get(task)!;
-                state.status = task.optional
-                    ? TaskStatus.Skipped
-                    : TaskStatus.Fail;
-                state.failReason = errorObject;
-            });
-            this._awaitersQueue.length = 0;
-        }
-
+        const error = Error(err);
         this._status = BootStatus.Fail;
-        this._processReject?.(errorObject);
+        this.disposeAwaitersQueue(error);
+        this._processReject?.(error);
     }
 
+    /** @internal */
+    private cancelProcess(): void {
+        if (this._status === BootStatus.Cancelled) return;
+        const error = this._abortSignal?.reason ?? Error(ERR_PROCESS_CANCELLED);
+        this._status = BootStatus.Cancelled;
+        this.disposeAwaitersQueue(error);
+        this._processReject?.(error);
+    }
+
+    /** @internal */
     private handleEmptyRootState(): Promise<void> {
         let hasSkippedImportantTasks = false;
         if (this._tasksSet.size > 0) {

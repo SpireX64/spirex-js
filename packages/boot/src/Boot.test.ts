@@ -28,6 +28,9 @@ async function catchErrorAsync(
     return undefined;
 }
 
+const delayAsync = (delay: number) =>
+    new Promise((resolve) => setTimeout(resolve, delay));
+
 const noop = () => {};
 const tasksPool = new Array(10000)
     .fill(null)
@@ -1655,6 +1658,85 @@ describe("Boot", () => {
             // Assert --------------
             expect(error).not.toBeUndefined();
             expect(boot.status).toBe(BootStatus.Completed);
+        });
+
+        describe("D8. Process cancellation with abort controller", () => {
+            test("D8.1. Cancel process with abort controller", async () => {
+                // Arrange --------
+                const task = Boot.task(() => delayAsync(0)); // microtask simulation
+                const boot = new Boot().add(task);
+                const abortController = new AbortController();
+
+                // Act ------------
+                const promise = boot.runAsync({
+                    abortSignal: abortController.signal,
+                });
+
+                abortController.abort();
+                let processError: DOMException | undefined;
+                try {
+                    await promise;
+                } catch (e) {
+                    if (e instanceof DOMException) processError = e;
+                }
+
+                // Assert ---------
+                expect(boot.status).toBe(BootStatus.Cancelled);
+                expect(processError).not.toBeUndefined();
+            });
+
+            test("D8.2. Handle abort signal in task", async () => {
+                // Arrange --------
+                let abortSignalHandled = false;
+                const abortController = new AbortController();
+                const task = Boot.task(async ({ abortSignal }) => {
+                    await delayAsync(0); // microtask simulation
+                    if (abortSignal?.aborted) {
+                        abortSignalHandled = true;
+                        return;
+                    }
+                });
+
+                const boot = new Boot().add(task);
+
+                // Act ------------
+                const promise = catchErrorAsync(() =>
+                    boot.runAsync({
+                        abortSignal: abortController.signal,
+                    }),
+                );
+                abortController.abort();
+                await promise;
+
+                // Assert ---------
+                expect(boot.status).toBe(BootStatus.Cancelled);
+                expect(abortSignalHandled).toBeTruthy();
+            });
+
+            test("D8.3. Throw error by task on abort signal", async () => {
+                // Arrange ----------
+                const expectedError = new Error("TestError");
+                const task = Boot.task(async ({ abortSignal }) => {
+                    await delayAsync(0); // microtask simulation
+                    if (abortSignal?.aborted) {
+                        throw expectedError;
+                    }
+                });
+                const abortController = new AbortController();
+                const boot = new Boot().add(task);
+
+                // Act --------------
+                const promise = boot.runAsync({
+                    abortSignal: abortController.signal,
+                });
+                abortController.abort();
+                await catchErrorAsync(() => promise);
+
+                // Assert -----------
+                expect(boot.status).toBe(BootStatus.Fail);
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Fail);
+                expect(boot.getTaskFailReason(task)).toBe(expectedError);
+            });
         });
     });
 });
