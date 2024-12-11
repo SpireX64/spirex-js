@@ -1,3 +1,8 @@
+// Package: @spirex/js-boot
+// Copyright 2024 (c) Artem Sobolenkov
+// MIT License
+// https://github.com/spirex64
+
 /** A union type representing either `null` or `undefined` */
 export type TNullable = null | undefined;
 
