@@ -833,7 +833,7 @@ describe("Boot", () => {
             });
         });
 
-        describe("D4. Execution important task with dependencies", () => {
+        describe("D4. Execution of important task with dependencies", () => {
             describe("D4.1. Important task dependency", () => {
                 test("D4.1a. Strong dependency completed", async () => {
                     // Arrange ---------------
@@ -978,104 +978,118 @@ describe("Boot", () => {
                     expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
                 });
             });
-        });
-        describe("D4.1. Optional task dependency", () => {
-            test("D4.1b. Weak dependency completed", async () => {
-                // Arrange --------------
-                const optionalDependencyTask = Boot.task(jest.fn(), {
-                    optional: true,
+
+            describe("D4.2. Optional task dependency", () => {
+                test("D4.2a. Weak dependency completed", async () => {
+                    // Arrange --------------
+                    const optionalDependencyTask = Boot.task(jest.fn(), {
+                        optional: true,
+                    });
+                    const task = Boot.task(jest.fn(), [
+                        { task: optionalDependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot()
+                        .add(task)
+                        .add(optionalDependencyTask);
+
+                    // Act ------------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(optionalDependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
                 });
-                const task = Boot.task(jest.fn(), [
-                    { task: optionalDependencyTask, weak: true },
-                ]);
-                const boot = new Boot().add(task).add(optionalDependencyTask);
 
-                // Act ------------------
-                await boot.runAsync();
+                test("D4.2b. Weak dependency failed", async () => {
+                    // Arrange --------------
+                    const expectedError = Error("Test Error");
+                    const optionalDependencyTask = Boot.task(
+                        jest.fn(() => {
+                            throw expectedError;
+                        }),
+                        { optional: true },
+                    );
+                    const task = Boot.task(jest.fn(), [
+                        { task: optionalDependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot()
+                        .add(task)
+                        .add(optionalDependencyTask);
 
-                // Assert ---------------
-                expect(boot.status).toBe(BootStatus.Completed);
-                expect(optionalDependencyTask.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
-                    TaskStatus.Completed,
-                );
-                expect(task.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
-            });
-            test("D4.1d. Weak dependency failed", async () => {
-                // Arrange --------------
-                const expectedError = Error("Test Error");
-                const optionalDependencyTask = Boot.task(
-                    jest.fn(() => {
-                        throw expectedError;
-                    }),
-                    { optional: true },
-                );
-                const task = Boot.task(jest.fn(), [
-                    { task: optionalDependencyTask, weak: true },
-                ]);
-                const boot = new Boot().add(task).add(optionalDependencyTask);
+                    // Act ------------------
+                    await boot.runAsync();
 
-                // Act ------------------
-                await boot.runAsync();
-
-                // Assert ---------------
-                expect(boot.status).toBe(BootStatus.Completed);
-                expect(optionalDependencyTask.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
-                    TaskStatus.Fail,
-                );
-                expect(boot.getTaskFailReason(optionalDependencyTask)).toBe(
-                    expectedError,
-                );
-                expect(task.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
-            });
-            test("D4.1d. Weak dependency skipped", async () => {
-                // Arrange ------------------
-                const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
-                const optionalDependencyTask = Boot.task(jest.fn(), {
-                    deps: [notAddedTask],
-                    optional: true,
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(optionalDependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(optionalDependencyTask)).toBe(
+                        expectedError,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
                 });
-                const task = Boot.task(jest.fn(), [
-                    { task: optionalDependencyTask, weak: true },
-                ]);
-                const boot = new Boot().add(task).add(optionalDependencyTask);
 
-                // Act ------------------
-                await boot.runAsync();
+                test("D4.2c. Weak dependency skipped", async () => {
+                    // Arrange ------------------
+                    const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
+                    const optionalDependencyTask = Boot.task(jest.fn(), {
+                        deps: [notAddedTask],
+                        optional: true,
+                    });
+                    const task = Boot.task(jest.fn(), [
+                        { task: optionalDependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot()
+                        .add(task)
+                        .add(optionalDependencyTask);
 
-                // Assert ---------------
-                expect(boot.status).toBe(BootStatus.Completed);
-                expect(optionalDependencyTask.delegate).not.toHaveBeenCalled();
-                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
-                    TaskStatus.Skipped,
-                );
-                expect(task.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
-            });
-            test("D4.1f. Weak dependency not added", async () => {
-                // Arrange --------------
-                const optionalDependencyTask = Boot.task(jest.fn(), {
-                    optional: true,
+                    // Act ------------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(
+                        optionalDependencyTask.delegate,
+                    ).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                        TaskStatus.Skipped,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
                 });
-                const task = Boot.task(jest.fn(), [
-                    { task: optionalDependencyTask, weak: true },
-                ]);
-                const boot = new Boot().add(task);
 
-                // Act ------------------
-                await boot.runAsync();
+                test("D4.2d. Weak dependency not added", async () => {
+                    // Arrange --------------
+                    const optionalDependencyTask = Boot.task(jest.fn(), {
+                        optional: true,
+                    });
+                    const task = Boot.task(jest.fn(), [
+                        { task: optionalDependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot().add(task);
 
-                // Assert ---------------
-                expect(boot.status).toBe(BootStatus.Completed);
-                expect(optionalDependencyTask.delegate).not.toHaveBeenCalled();
-                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
-                    TaskStatus.Unknown,
-                );
-                expect(task.delegate).toHaveBeenCalled();
-                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+                    // Act ------------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(
+                        optionalDependencyTask.delegate,
+                    ).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                        TaskStatus.Unknown,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+                });
             });
         });
     });
