@@ -32,6 +32,8 @@ const delayAsync = (delay: number) =>
     new Promise((resolve) => setTimeout(resolve, delay));
 
 const noop = () => {};
+const asyncNoop = async () => {};
+
 const tasksPool = new Array(10000)
     .fill(null)
     .map((_, i) => Boot.task(noop, { name: `task_${i}` }))
@@ -69,7 +71,7 @@ describe("Boot", () => {
             //   - Task is immutable (sealed & frozen).
             test("A1.1. With sync delegate", () => {
                 // Arrange -------
-                const taskDelegate = () => {};
+                const taskDelegate = noop;
 
                 // Act -----------
                 const task = Boot.task(taskDelegate);
@@ -89,7 +91,7 @@ describe("Boot", () => {
             //   - Task is immutable (sealed & frozen).
             test("A1.2. With async delegate", () => {
                 // Arrange --------
-                const asyncDelegate = async () => {};
+                const asyncDelegate = asyncNoop;
 
                 // Act ------------
                 const task = Boot.task(asyncDelegate);
@@ -111,7 +113,7 @@ describe("Boot", () => {
                 const expectedName = "MyTask";
 
                 // Act ----------
-                const task = Boot.task(() => {}, { name: expectedName });
+                const task = Boot.task(noop, { name: expectedName });
 
                 // Assert --------
                 expect(task.name).toBe(expectedName);
@@ -138,7 +140,7 @@ describe("Boot", () => {
             // THEN: The task has a default priority.
             test("A3.1. Create a task with default priority", () => {
                 // Act --------
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Assert -----
                 expect(task.priority).toBe(DEFAULT_TASK_PRIORITY);
@@ -152,7 +154,7 @@ describe("Boot", () => {
                 const expectedPriority = 42;
 
                 // Act ------------
-                const task = Boot.task(() => {}, {
+                const task = Boot.task(noop, {
                     priority: expectedPriority,
                 });
 
@@ -168,7 +170,7 @@ describe("Boot", () => {
                 const expectedPriority = Infinity;
 
                 // Act ------------
-                const task = Boot.task(() => {}, {
+                const task = Boot.task(noop, {
                     priority: expectedPriority,
                 });
 
@@ -186,7 +188,7 @@ describe("Boot", () => {
                 // Act ------------
                 let error: Error | null = null;
                 try {
-                    Boot.task(() => {}, { priority: invalidPriority });
+                    Boot.task(noop, { priority: invalidPriority });
                 } catch (e) {
                     if (e instanceof Error) error = e;
                 }
@@ -202,7 +204,7 @@ describe("Boot", () => {
             // THEN: The important task will be created.
             test("A4.1. Create an important/default task", () => {
                 // Act ------------
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Assert --------
                 expect(task.optional).toBeFalsy(); // is important
@@ -213,7 +215,7 @@ describe("Boot", () => {
             // THEN: The important task will be created.
             test("A4.2. Create a task with optional flag", () => {
                 // Act ------------
-                const task = Boot.task(() => {}, { optional: true });
+                const task = Boot.task(noop, { optional: true });
 
                 // Assert ---------
                 expect(task.optional).toBeTruthy();
@@ -224,7 +226,7 @@ describe("Boot", () => {
             // WHEN: Create task without dependencies
             test("A5.1. Task have no dependencies by default", () => {
                 // Act ----------
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Assert -------
                 expect(task.dependencies.length).toBe(0);
@@ -232,10 +234,10 @@ describe("Boot", () => {
 
             test("A5.2a. Add single dependency in params", () => {
                 // Arrange --------------
-                const taskD = Boot.task(() => {});
+                const taskD = Boot.task(noop);
 
                 // Act ------------------
-                const task = Boot.task(() => {}, [taskD]);
+                const task = Boot.task(noop, [taskD]);
 
                 // Assert ---------------
                 expect(hasDependency(task, taskD)).toBeTruthy();
@@ -246,11 +248,11 @@ describe("Boot", () => {
 
             test("A5.2b. Add many dependencies in params", () => {
                 // Arrange ------------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
 
                 // Act ----------------
-                const task = Boot.task(() => {}, [taskA, taskB]);
+                const task = Boot.task(noop, [taskA, taskB]);
 
                 // Expect -------------
                 expect(hasDependency(task, taskA)).toBeTruthy();
@@ -266,7 +268,7 @@ describe("Boot", () => {
 
             test("A5.2c. Pass an empty array as dependencies in params", () => {
                 // Act ----------------
-                const task = Boot.task(() => {}, []);
+                const task = Boot.task(noop, []);
 
                 // Assert -------------
                 expect(task.dependencies.length).toBe(0);
@@ -274,10 +276,10 @@ describe("Boot", () => {
 
             test("A5.3a. Add dependency in factory options", () => {
                 // Arrange --------
-                const taskD = Boot.task(() => {});
+                const taskD = Boot.task(noop);
 
                 // Act -----------
-                const task = Boot.task(() => {}, { deps: [taskD] });
+                const task = Boot.task(noop, { deps: [taskD] });
 
                 // Assert --------
                 expect(hasDependency(task, taskD)).toBeTruthy();
@@ -286,11 +288,11 @@ describe("Boot", () => {
 
             test("A5.3b. Add many dependencies in params", () => {
                 // Arrange ------------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
 
                 // Act ----------------
-                const task = Boot.task(() => {}, {
+                const task = Boot.task(noop, {
                     deps: [taskA, taskB],
                 });
 
@@ -301,7 +303,7 @@ describe("Boot", () => {
 
             test("A5.3c. Pass an empty array as dependencies in factory options", () => {
                 // Act ----------------
-                const task = Boot.task(() => {}, { deps: [] });
+                const task = Boot.task(noop, { deps: [] });
 
                 // Assert -------------
                 expect(task.dependencies.length).toBe(0);
@@ -309,10 +311,10 @@ describe("Boot", () => {
 
             test("A5.4a. Add dependency with params wrapper", () => {
                 // Arrange ------------
-                const taskD = Boot.task(() => {});
+                const taskD = Boot.task(noop);
 
                 // Act ----------------
-                const task = Boot.task(() => {}, [{ task: taskD }]);
+                const task = Boot.task(noop, [{ task: taskD }]);
 
                 // Assert -------------
                 expect(hasDependency(task, taskD)).toBeTruthy();
@@ -323,11 +325,11 @@ describe("Boot", () => {
 
             test("A5.4a. Add many dependencies with params wrappers", () => {
                 // Arrange ------------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
 
                 // Act ----------------
-                const task = Boot.task(() => {}, [
+                const task = Boot.task(noop, [
                     { task: taskA },
                     { task: taskB },
                 ]);
@@ -346,11 +348,11 @@ describe("Boot", () => {
 
             test("A5.5. Mixed dependencies format", () => {
                 // Arrange ---------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
 
                 // Act -------------
-                const task = Boot.task(() => {}, [{ task: taskA }, taskB]);
+                const task = Boot.task(noop, [{ task: taskA }, taskB]);
 
                 // Assert ----------
                 expect(hasDependency(task, taskA)).toBeTruthy();
@@ -368,10 +370,10 @@ describe("Boot", () => {
         describe("A6. Weak dependency", () => {
             test("A6.1a. Strong dependency by default", () => {
                 // Arrange --------
-                const taskD = Boot.task(() => {});
+                const taskD = Boot.task(noop);
 
                 // Act ------------
-                const task = Boot.task(() => {}, [taskD]);
+                const task = Boot.task(noop, [taskD]);
 
                 // Assert ---------
                 expect(hasDependency(task, taskD)).toBeTruthy();
@@ -380,10 +382,10 @@ describe("Boot", () => {
 
             test("A6.1b. Mark a dependency as weak", () => {
                 // Arrange ------
-                const taskD = Boot.task(() => {});
+                const taskD = Boot.task(noop);
 
                 // Act ----------
-                const task = Boot.task(() => {}, [{ task: taskD, weak: true }]);
+                const task = Boot.task(noop, [{ task: taskD, weak: true }]);
 
                 // Assert -------
                 expect(hasDependency(task, taskD)).toBeTruthy();
@@ -392,12 +394,12 @@ describe("Boot", () => {
 
             test("A6.2a. An important task should not have a strong dependency on an optional task", () => {
                 // Arrange ------
-                const optionalTask = Boot.task(() => {}, { optional: true });
+                const optionalTask = Boot.task(noop, { optional: true });
 
                 // Act ----------
                 let error: Error | null = null;
                 try {
-                    Boot.task(() => {}, [optionalTask]);
+                    Boot.task(noop, [optionalTask]);
                 } catch (e) {
                     if (e instanceof Error) error = e;
                 }
@@ -408,10 +410,10 @@ describe("Boot", () => {
 
             test("A6.2b. An important task may have a weak dependency on an optional task", () => {
                 // Arrange ------
-                const optionalTask = Boot.task(() => {}, { optional: true });
+                const optionalTask = Boot.task(noop, { optional: true });
 
                 // Act ----------
-                const importantTask = Boot.task(() => {}, [
+                const importantTask = Boot.task(noop, [
                     { task: optionalTask, weak: true },
                 ]);
 
@@ -443,7 +445,7 @@ describe("Boot", () => {
             test("C1.1 Add a single task", () => {
                 // Arrange ------
                 const boot = new Boot();
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Act ----------
                 boot.add(task);
@@ -455,7 +457,7 @@ describe("Boot", () => {
 
             test("C1.2 Trying to add a task to a process when it has already been added before", () => {
                 // Arrange ------
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
                 const boot = new Boot().add(task);
 
                 // Act ----------
@@ -469,9 +471,9 @@ describe("Boot", () => {
             test("C1.3. Adding tasks to a process using a call chain", () => {
                 // Arrange -------
                 const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const taskC = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
+                const taskC = Boot.task(noop);
 
                 // Act -----------
                 const bootRef = boot.add(taskA).add(taskB).add(taskC);
@@ -489,9 +491,9 @@ describe("Boot", () => {
             test("C2.1. Adding multiple tasks to a process by array", () => {
                 // Arrange --------
                 const boot = new Boot();
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
-                const taskC = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
+                const taskC = Boot.task(noop);
 
                 // Act ------------
                 const bootRef = boot.add([taskA, taskB, taskC]);
@@ -506,8 +508,8 @@ describe("Boot", () => {
 
             test("C2.2. Skipping tasks that have already been added", () => {
                 // Arrange --------
-                const taskA = Boot.task(() => {});
-                const taskB = Boot.task(() => {});
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
                 const boot = new Boot().add(taskA);
 
                 // Act ------------
@@ -524,7 +526,7 @@ describe("Boot", () => {
             test("C3.1. Pass falsy-value as param", () => {
                 // Arrange --------
                 const boot = new Boot();
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Act ------------
                 boot.add(false).add(null).add(undefined).add(task);
@@ -537,7 +539,7 @@ describe("Boot", () => {
             test("C3.2. Pass falsy-value in array", () => {
                 // Arrange --------
                 const boot = new Boot();
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Act ------------
                 boot.add([false, undefined, null, task]);
@@ -552,7 +554,7 @@ describe("Boot", () => {
             test("C4a. Task not added to process", () => {
                 // Arrange ---------
                 const boot = new Boot();
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
 
                 // Act --------------
                 const processHasTask = boot.has(task);
@@ -564,7 +566,7 @@ describe("Boot", () => {
 
             test("C4b. Task added to process", () => {
                 // Arrange ----------
-                const task = Boot.task(() => {});
+                const task = Boot.task(noop);
                 const boot = new Boot().add(task);
 
                 // Act -------------
@@ -578,7 +580,7 @@ describe("Boot", () => {
 
         test("C5. Attempt to add task after start process", async () => {
             // Arrange -----------
-            const task = Boot.task(() => {});
+            const task = Boot.task(noop);
             const boot = new Boot();
 
             // Act ---------------
@@ -1065,7 +1067,7 @@ describe("Boot", () => {
 
                 test("D4.2c. Weak dependency skipped", async () => {
                     // Arrange ------------------
-                    const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
+                    const notAddedTask = Boot.task(noop); // For "Skipped" status simulation
                     const optionalDependencyTask = Boot.task(jest.fn(), {
                         deps: [notAddedTask],
                         optional: true,
@@ -1393,7 +1395,7 @@ describe("Boot", () => {
 
                 test("D5.2e. Strong dependency skipped", async () => {
                     // Arrange --------------
-                    const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
+                    const notAddedTask = Boot.task(noop); // For "Skipped" status simulation
                     const dependencyTask = Boot.task(jest.fn(), {
                         deps: [notAddedTask],
                         optional: true,
@@ -1419,7 +1421,7 @@ describe("Boot", () => {
 
                 test("D5.2f. Weak dependency skipped", async () => {
                     // Arrange --------------
-                    const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
+                    const notAddedTask = Boot.task(noop); // For "Skipped" status simulation
                     const dependencyTask = Boot.task(jest.fn(), {
                         deps: [notAddedTask],
                         optional: true,
@@ -1603,23 +1605,23 @@ describe("Boot", () => {
 
             test("D6.3. Deep tasks execution with skipped tasks", async () => {
                 // Arrange ------
-                const taskA = Boot.task(() => {}, { name: "A" });
+                const taskA = Boot.task(noop, { name: "A" });
                 const taskB = Boot.task(
                     () => {
                         throw Error();
                     },
                     { name: "B", optional: true },
                 );
-                const taskC = Boot.task(() => {}, {
+                const taskC = Boot.task(noop, {
                     name: "C",
                     deps: [taskA, { task: taskB, weak: true }],
                 });
-                const taskD = Boot.task(() => {}, {
+                const taskD = Boot.task(noop, {
                     name: "D",
                     optional: true,
                     deps: [taskB],
                 });
-                const taskE = Boot.task(() => {}, {
+                const taskE = Boot.task(noop, {
                     name: "E",
                     optional: true,
                     deps: [taskC, { task: taskD, weak: true }],
@@ -1736,6 +1738,135 @@ describe("Boot", () => {
                 expect(boot.status).toBe(BootStatus.Fail);
                 expect(boot.getTaskStatus(task)).toBe(TaskStatus.Fail);
                 expect(boot.getTaskFailReason(task)).toBe(expectedError);
+            });
+        });
+    });
+
+    describe("E. Boot process inheritance", () => {
+        test("E1. Simple inheritance", async () => {
+            // Arrange ---------------
+            const task = Boot.task(jest.fn());
+            const bootA = new Boot().add(task);
+
+            const bootB = new Boot(bootA);
+
+            // Act -------------------
+            await bootB.runAsync();
+
+            // Assert ----------------
+            expect(bootB.isChildOf(bootA)).toBeTruthy();
+            expect(bootB.has(task)).toBeTruthy();
+            expect(task.delegate).toHaveBeenCalledTimes(1);
+            expect(bootB.getTaskStatus(task)).toBe(TaskStatus.Completed);
+            expect(bootA.getTaskStatus(task)).toBe(TaskStatus.Idle); // Parent's state map is not affected
+        });
+
+        test("E2. Multi inheritance", async () => {
+            // Arrange --------
+            const taskA = Boot.task(jest.fn());
+            const bootA = new Boot().add(taskA);
+
+            const taskB = Boot.task(jest.fn());
+            const bootB = new Boot().add(taskB);
+
+            const task = Boot.task(jest.fn());
+            const boot = new Boot(bootA, bootB).add(task);
+
+            // Act ------------
+            await boot.runAsync();
+
+            // Assert ---------
+            expect(boot.isChildOf(bootA)).toBeTruthy();
+            expect(boot.isChildOf(bootB)).toBeTruthy();
+            expect(boot.has(taskA)).toBeTruthy();
+            expect(boot.has(taskB)).toBeTruthy();
+            expect(boot.has(task)).toBeTruthy();
+
+            expect(taskA.delegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+            expect(taskB.delegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+            expect(task.delegate).toHaveBeenCalledTimes(1);
+            expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+
+            // Parent's state map is not affected
+            expect(bootA.getTaskStatus(taskA)).toBe(TaskStatus.Idle);
+            expect(bootA.getTaskStatus(taskB)).toBe(TaskStatus.Unknown);
+            expect(bootA.getTaskStatus(task)).toBe(TaskStatus.Unknown);
+
+            expect(bootB.getTaskStatus(taskA)).toBe(TaskStatus.Unknown);
+            expect(bootB.getTaskStatus(taskB)).toBe(TaskStatus.Idle);
+            expect(bootB.getTaskStatus(task)).toBe(TaskStatus.Unknown);
+        });
+
+        test("E3. Inheritance with task dependencies", async () => {
+            // Arrange ----------------
+            const taskA = Boot.task(noop);
+            const taskB = Boot.task(noop, [taskA]);
+
+            const bootA = new Boot().add(taskA);
+            const bootB = new Boot(bootA).add(taskB);
+
+            // Act -----------------
+            await bootB.runAsync();
+
+            // Assert -------------
+            expect(bootB.isChildOf(bootA)).toBeTruthy();
+            expect(bootB.status).toBe(BootStatus.Completed);
+            expect(bootB.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+            expect(bootB.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+        });
+
+        describe("E4. Inheritance with the tasks state map synchronization", () => {
+            test("E4.1. Running processes without synchronization", async () => {
+                // Arrange -------------
+                const taskA = Boot.task(jest.fn());
+                const bootA = new Boot().add(taskA);
+
+                const taskB = Boot.task(jest.fn(), [taskA]);
+                const bootB = new Boot(bootA).add(taskB);
+
+                // Act -----------------
+                await bootA.runAsync();
+                await bootB.runAsync();
+
+                // Assert --------------
+                expect(bootA.status).toBe(BootStatus.Completed);
+                expect(bootB.status).toBe(BootStatus.Completed);
+
+                expect(taskA.delegate).toHaveBeenCalledTimes(2); // once per boot process
+                expect(taskB.delegate).toHaveBeenCalledTimes(1);
+            });
+
+            test("E4.2. Running processes with synchronization", async () => {
+                // Arrange -------------
+                const taskA = Boot.task(
+                    jest.fn(() => {
+                        throw Error();
+                    }),
+                    { name: "TaskA", optional: true },
+                );
+                const bootA = new Boot().add(taskA);
+
+                const taskB = Boot.task(jest.fn(), {
+                    name: "TaskB",
+                    deps: [{ task: taskA, weak: true }],
+                });
+                const bootB = new Boot(bootA).add(taskB);
+
+                // Act -----------------
+                await bootA.runAsync();
+                await bootB.runAsync({ synchronizeWithParents: true });
+
+                // Assert --------------
+                expect(bootA.status).toBe(BootStatus.Completed);
+                expect(bootB.status).toBe(BootStatus.Completed);
+
+                expect(bootB.getTaskStatus(taskA)).toBe(TaskStatus.Fail);
+                expect(bootB.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+
+                expect(taskA.delegate).toHaveBeenCalledTimes(1);
+                expect(taskB.delegate).toHaveBeenCalledTimes(1);
             });
         });
     });

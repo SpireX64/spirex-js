@@ -63,6 +63,7 @@ export type TBootTaskOptions = {
 
 export type TBootProcessOptions = {
     abortSignal?: AbortSignal;
+    synchronizeWithParents?: boolean;
 };
 
 /**
@@ -207,6 +208,8 @@ export class Boot {
      */
     private _status: BootStatus = BootStatus.Idle;
 
+    private readonly _parentsSet: Set<Boot> | undefined;
+
     /**
      * Set of tasks added to the boot process.
      * @internal
@@ -235,6 +238,13 @@ export class Boot {
     private _abortSignal?: AbortSignal;
 
     // endregion: FIELDS
+
+    public constructor(...parents: readonly Boot[]) {
+        if (parents?.length) {
+            this._parentsSet = new Set(parents);
+            parents.forEach((parent) => this.addTasksFromParent(parent));
+        }
+    }
 
     // region: PROPERTIES
 
@@ -295,6 +305,10 @@ export class Boot {
         return this._tasksSet.has(task);
     }
 
+    public isChildOf(otherBoot: Boot): boolean {
+        return Boolean(this._parentsSet?.has(otherBoot));
+    }
+
     /** Retrieves currect status of given task */
     public getTaskStatus(task: TBootTask): TaskStatus {
         const state = this._tasksStateMap.get(task);
@@ -320,6 +334,8 @@ export class Boot {
      */
     public async runAsync(options?: TBootProcessOptions): Promise<void> {
         if (this._status !== BootStatus.Idle) throw new Error(ERR_BOOT_STARTED);
+
+        if (options?.synchronizeWithParents) this.synchronizeWithParents();
 
         const rootTasks = this.findRootTasksAndLinkAwaiters();
         if (rootTasks.length === 0) return this.handleEmptyRootState();
@@ -434,16 +450,23 @@ export class Boot {
             // Отправляем ожидающие задачи в очередь
             this.prepareAwaiters(taskState.awaiters);
 
-            taskState.status = TaskStatus.Running;
             try {
-                // Запускаем делегат задачи.
-                const mayBePromise = task.delegate({
-                    abortSignal: this._abortSignal,
-                });
+                // Status can be inheritance from parent state
+                if (
+                    taskState.status === TaskStatus.Idle ||
+                    taskState.status === TaskStatus.Waiting
+                ) {
+                    taskState.status = TaskStatus.Running;
 
-                // Если делегат возвращает Promise, ждем его завершения.
-                if (isPromise(mayBePromise)) await mayBePromise;
-                taskState.status = TaskStatus.Completed;
+                    // Запускаем делегат задачи.
+                    const mayBePromise = task.delegate({
+                        abortSignal: this._abortSignal,
+                    });
+
+                    // Если делегат возвращает Promise, ждем его завершения.
+                    if (isPromise(mayBePromise)) await mayBePromise;
+                    taskState.status = TaskStatus.Completed;
+                }
             } catch (error) {
                 taskState.status = TaskStatus.Fail;
                 taskState.failReason = error as Error;
@@ -627,6 +650,23 @@ export class Boot {
             this._status = BootStatus.Completed;
             return Promise.resolve();
         }
+    }
+
+    /** @internal */
+    private addTasksFromParent(boot: Boot): void {
+        boot._tasksSet.forEach((parentTask) => this.add(parentTask));
+    }
+
+    /** @internal */
+    private synchronizeWithParents() {
+        this._parentsSet?.forEach((parent) => {
+            parent._tasksStateMap.forEach((state, task) => {
+                console.log(
+                    `Sync ${task.name}. Status: ${state.status}, Fail: ${state.failReason}`,
+                );
+                this._tasksStateMap.set(task, state);
+            });
+        });
     }
     // endregion: PRIVATE METHODS
 }
