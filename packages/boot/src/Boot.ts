@@ -12,7 +12,14 @@ export type TNullable = null | undefined;
  */
 export type TFalsy = TNullable | false | 0;
 
+export interface IBootProcess {
+    has(task: TBootTask): boolean;
+    getTaskStatus(task: TBootTask): TaskStatus;
+    getTaskFailReason(task: TBootTask): Error | null;
+}
+
 export type TBootTaskDelegateParams = {
+    process: IBootProcess;
     abortSignal?: AbortSignal;
 };
 
@@ -129,7 +136,7 @@ function comparePriority(lhv: TBootTask, rhv: TBootTask): number {
     return lhv.priority - rhv.priority;
 }
 
-export class Boot {
+export class Boot implements IBootProcess {
     // region: STATIC METHODS
 
     /**
@@ -466,6 +473,7 @@ export class Boot {
 
                     // Запускаем делегат задачи.
                     const mayBePromise = task.delegate({
+                        process: this,
                         abortSignal: this._abortSignal,
                     });
 
