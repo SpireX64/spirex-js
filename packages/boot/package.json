@@ -28,22 +28,22 @@
     "url": "https://github.com/SpireX64/spirex-js",
     "directory": "packages/boot"
   },
-  "types": "./build/AppBoot.d.ts",
-  "main": "./build/AppBoot.js",
-  "module": "./build/AppBoot.mjs",
+  "types": "./build/Boot.d.ts",
+  "main": "./build/Boot.js",
+  "module": "./build/Boot.mjs",
   "exports": {
     ".": {
       "import": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.mjs"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.mjs"
       },
       "require": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.cjs"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.cjs"
       },
       "default": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.js"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.js"
       }
     }
   },
