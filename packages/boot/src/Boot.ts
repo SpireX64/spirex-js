@@ -22,11 +22,17 @@ export type TBootTaskAsyncDelegate = () => Promise<void>;
 /** A union of synchronous and asynchronous boot task delegate functions. */
 export type TBootTaskDelegate = TBootTaskSyncDelegate | TBootTaskAsyncDelegate;
 
+/** Represents a boot task with its metadata and dependencies. */
 export type TBootTask = {
-    optional: boolean;
-    priority: number;
+    /** A unique name identifying the task. */
     name: string;
+    /** Indicates whether the task is optional (can be skipped on failure). */
+    optional: boolean;
+    /** Priority of the task, where higher numbers indicate higher priority. */
+    priority: number;
+    /** The function to execute for the task (sync or async). */
     delegate: TBootTaskDelegate;
+    /** A list of dependencies required for this task. */
     dependencies: readonly TBootTaskDependency[];
 };
 
@@ -82,6 +88,7 @@ type TTaskState = {
 };
 
 const ERR_BOOT_STARTED = "Boot process already started";
+const ERR_ADD_TASK_AFTER_START = "Attempt to add tasks after process started";
 const ERR_PRIORITY_NOT_A_NUMBER = "Priority must be a number";
 const ERR_STRONG_DEPENDENCY_OPTIONAL_TASK =
     "An important task should not have a strong dependency on an optional task.";
@@ -111,6 +118,9 @@ export class Boot {
      *                   which can be synchronous or asynchronous.
      * @param options - Optional task configuration, including task dependencies.
      * @returns The created boot task.
+     *
+     * @throws {Error} if the priority is not a correct number.
+     * @throws {Error} if important task has a strong dependency on an optional task
      */
     public static task(
         delegate: TBootTaskDelegate,
@@ -123,12 +133,15 @@ export class Boot {
      *                   which can be synchronous or asynchronous.
      * @param dependencies - An optional list of tasks that this task depends on.
      * @returns The created boot task.
+     *
+     * @throws {Error} if important task has a strong dependency on an optional task
      */
     public static task(
         delegate: TBootTaskDelegate,
         dependencies?: readonly TBootTaskDependencyUnion[] | TNullable,
     ): TBootTask;
 
+    /** @internal */
     public static task(
         delegate: TBootTaskDelegate,
         optionsOrDependencies?:
@@ -239,9 +252,13 @@ export class Boot {
      */
     public add(tasks: readonly (TBootTask | TFalsy)[]): Boot;
 
+    /** @internal */
     public add(
         taskOrTasks: TBootTask | readonly (TBootTask | TFalsy)[] | TFalsy,
     ): Boot {
+        if (this._status !== BootStatus.Idle) {
+            throw new Error(ERR_ADD_TASK_AFTER_START);
+        }
         if (taskOrTasks) {
             if (Array.isArray(taskOrTasks)) {
                 taskOrTasks.forEach((task) => this.add(task));
@@ -264,14 +281,21 @@ export class Boot {
     }
 
     /**
-     * Retrieves failure reason of given task.
-     * If there is no failure, "null" value returns,
+     * Retrieves the failure reason of a given task.
+     * If the task did not fail, this method returns `null`.
+     *
+     * @param task - The task for which to retrieve the failure reason.
+     * @returns The error that caused the task to fail, or `null` if the task did not fail.
      */
     public getTaskFailReason(task: TBootTask): Error | null {
         return this._tasksStateMap.get(task)?.failReason ?? null;
     }
 
-    public async runAsync() {
+    /**
+     * Executes all registered tasks in the correct order based on their dependencies.
+     * @returns A promise that resolves when the boot process is complete or rejects on failure.
+     */
+    public async runAsync(): Promise<void> {
         const rootTasks = this.findRootTasksAndLinkAwaiters();
 
         if (rootTasks.length === 0) return this.handleEmptyRootState();
@@ -304,7 +328,16 @@ export class Boot {
         });
     }
 
-    /** @internal */
+    /**
+     * Identifies root tasks (tasks without unresolved dependencies) and links awaiters for each task.
+     *
+     * Root tasks are determined based on the presence and type of dependencies.
+     * Tasks with only weak dependencies may also be considered as roots under certain conditions.
+     *
+     * @returns {readonly TBootTask[]} An array of tasks that ready to be executed.
+     *
+     * @internal
+     */
     private findRootTasksAndLinkAwaiters(): readonly TBootTask[] {
         const roots: TBootTask[] = [];
         const maybeRoots: TBootTask[] = [];
@@ -359,7 +392,15 @@ export class Boot {
         return roots.sort(comparePriority);
     }
 
-    /** @internal */
+    /**
+     * Processes a list of tasks by executing their delegate functions and updating their states.
+     *
+     * If a task fails and is critical, the boot process terminates with an error.
+     *
+     * @param tasks - The tasks to process.
+     *
+     * @internal
+     */
     private processTasks(tasks: readonly TBootTask[]): void {
         if (this.status !== BootStatus.Running) return;
         const taskPromises = tasks.map(async (task) => {
@@ -473,11 +514,13 @@ export class Boot {
         }
     }
 
+    /** @internal */
     private updateProcessPromise(tasksPromises: Promise<unknown>[]): void {
         if (this._processPromise) tasksPromises.push(this._processPromise);
         this._processPromise = Promise.all(tasksPromises);
     }
 
+    /** @internal */
     private async finalize(): Promise<void> {
         if (this._status !== BootStatus.Running) return;
 
@@ -492,6 +535,15 @@ export class Boot {
         this._processResolve?.();
     }
 
+    /**
+     * Marks the boot process as failed and updates the status of all pending tasks.
+     *
+     * All critical tasks in the awaiters queue are marked as failed, while optional tasks are skipped.
+     *
+     * @param err - The error message to associate with the failure.
+     *
+     * @internal
+     */
     private fail(err: string): void {
         const errorObject = Error(err);
 
