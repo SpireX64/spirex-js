@@ -8,6 +8,15 @@ import {
     TaskStatus,
 } from "./Boot";
 
+function catchError(func: () => unknown): Error | undefined {
+    try {
+        func();
+    } catch (e) {
+        if (e instanceof Error) return e;
+    }
+    return undefined;
+}
+
 async function catchErrorAsync(
     func: () => Promise<unknown>,
 ): Promise<Error | undefined> {
@@ -562,6 +571,20 @@ describe("Boot", () => {
                 expect(processHasTask).toBeTruthy();
                 expect(boot.getTaskStatus(task)).toBe(TaskStatus.Idle);
             });
+        });
+
+        test("C5. Attempt to add task after start process", async () => {
+            // Arrange -----------
+            const task = Boot.task(() => {});
+            const boot = new Boot();
+
+            // Act ---------------
+            const promise = boot.runAsync();
+            const error = catchError(() => boot.add(task));
+            await promise;
+
+            // Assert ------------
+            expect(error).not.toBeUndefined();
         });
     });
 
