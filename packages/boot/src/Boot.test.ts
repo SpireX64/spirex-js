@@ -2,24 +2,35 @@
 
 import {
     Boot,
-    BootState,
+    BootStatus,
     DEFAULT_TASK_PRIORITY,
     hasDependency,
     TaskStatus,
 } from "./Boot";
 
+async function catchErrorAsync(
+    func: () => Promise<unknown>,
+): Promise<Error | undefined> {
+    try {
+        await func();
+    } catch (e) {
+        if (e instanceof Error) return e;
+    }
+    return undefined;
+}
+
 const noop = () => {};
 const tasksPool = new Array(10000)
     .fill(null)
     .map((_, i) => Boot.task(noop, { name: `task_${i}` }))
-    .map((it, i, arr) => [
+    .map((it, i) => [
         it,
-        Boot.task(noop, { name: `childOf_${it.name}`, deps: [it] }),
+        Boot.task(noop, { name: `${i}_childOf_${it.name}`, deps: [it] }),
     ])
     .flat()
-    .map((it, i, arr) => [
+    .map((it, i) => [
         it,
-        Boot.task(noop, { name: `childOf_${it.name}`, deps: [it] }),
+        Boot.task(noop, { name: `${i}_childOf_${it.name}`, deps: [it] }),
     ])
     .flat()
     .reverse();
@@ -410,7 +421,7 @@ describe("Boot", () => {
 
             // Assert --------
             expect(boot).toBeInstanceOf(Boot);
-            expect(boot.state).toBe(BootState.Idle);
+            expect(boot.status).toBe(BootStatus.Idle);
             expect(boot.tasksCount).toBe(0);
         });
     });
@@ -554,64 +565,518 @@ describe("Boot", () => {
         });
     });
 
-    describe("D. Running", () => {
-        test("D1. Run without tasks", async () => {
-            // Arrange ------------
+    describe("D. Process execution", () => {
+        // GIVEN
+        //   - Boot process created
+        //   - No task added
+        // WHEN: Execute process
+        // THEN
+        //   - Process will be completed without awaiting
+        //   - Process status is "Completed"
+        test("D1. Execute process without tasks", () => {
+            // Arrange -----------
             const boot = new Boot();
 
-            // Act ----------------
-            await boot.runAsync();
+            // Act ---------------
+            boot.runAsync();
 
-            // Assert -------------
-            expect(boot.state).toBe(BootState.Completed);
+            // Assert ------------
+            expect(boot.status).toBe(BootStatus.Completed);
         });
 
-        test("D2a. Run with sync task", async () => {
-            // Arrange ------------
-            const syncDelegate = jest.fn();
-            const syncTask = Boot.task(syncDelegate);
-            const boot = new Boot().add(syncTask);
+        describe("D2. Execution sequence", () => {
+            describe("D2.1. Execute process with independent tasks", () => {
+                test("D2.1a. Run with one sync task", async () => {
+                    // Arrange --------------
+                    const syncDelegate = jest.fn();
+                    const syncTask = Boot.task(syncDelegate);
 
-            // Act ----------
-            await boot.runAsync();
+                    const boot = new Boot().add(syncTask);
 
-            // Assert -------
-            expect(syncDelegate).toHaveBeenCalledTimes(1);
-            expect(boot.getTaskStatus(syncTask)).toBe(TaskStatus.Completed);
+                    // Act ------------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(boot.getTaskStatus(syncTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(syncDelegate).toHaveBeenCalledTimes(1);
+                });
+
+                test("D2.1b. Run with one async task", async () => {
+                    // Arrange --------------
+                    const asyncDelegate = jest.fn(() => Promise.resolve());
+                    const asyncTask = Boot.task(asyncDelegate);
+
+                    const boot = new Boot().add(asyncTask);
+
+                    // Act ------------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(boot.getTaskStatus(asyncTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(asyncDelegate).toHaveBeenCalledTimes(1);
+                });
+
+                test("D2.1c. Run with sync & async tasks", async () => {
+                    // Arrange -------------
+                    const syncDelegate = jest.fn();
+                    const syncTask = Boot.task(syncDelegate);
+
+                    const asyncDelegate = jest.fn(() => Promise.resolve());
+                    const asyncTask = Boot.task(asyncDelegate);
+
+                    const boot = new Boot().add(syncTask).add(asyncTask);
+
+                    // Act -----------------
+                    await boot.runAsync();
+
+                    // Assert ---------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(boot.getTaskStatus(syncTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(boot.getTaskStatus(asyncTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(syncDelegate).toHaveBeenCalledTimes(1);
+                    expect(asyncDelegate).toHaveBeenCalledTimes(1);
+                });
+            });
+
+            test("D2.2. Default execution sequence", async () => {
+                // Arrange -----------
+                let sequence: string = "";
+
+                const taskA = Boot.task(() => {
+                    sequence += "A";
+                });
+                const taskB = Boot.task(async () => {
+                    sequence += "B";
+                });
+                const taskC = Boot.task(() => {
+                    sequence += "C";
+                });
+                const taskD = Boot.task(async () => {
+                    sequence += "D";
+                });
+
+                const boot = new Boot().add([taskA, taskB, taskC, taskD]);
+                const expectedSequence = "ABCD";
+
+                // Act ---------------
+                await boot.runAsync();
+
+                // Assert ------------
+                expect(sequence).toBe(expectedSequence);
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskD)).toBe(TaskStatus.Completed);
+            });
+
+            test("D2.3. Execution sequence by priority", async () => {
+                // Arrange -----------
+                let sequence: string = "";
+
+                const taskA = Boot.task(
+                    () => {
+                        sequence += "A";
+                    },
+                    { priority: -1 },
+                );
+                const taskB = Boot.task(
+                    async () => {
+                        sequence += "B";
+                    },
+                    { priority: 8 },
+                );
+                const taskC = Boot.task(
+                    () => {
+                        sequence += "C";
+                    },
+                    { priority: -4 },
+                );
+                const taskD = Boot.task(
+                    async () => {
+                        sequence += "D";
+                    },
+                    { priority: 2 },
+                );
+
+                const boot = new Boot().add([taskA, taskB, taskC, taskD]);
+                const expectedSequence = "CADB";
+
+                // Act ---------------
+                await boot.runAsync();
+
+                // Assert ------------
+                expect(sequence).toBe(expectedSequence);
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);
+                expect(boot.getTaskStatus(taskD)).toBe(TaskStatus.Completed);
+            });
         });
 
-        test("D2b. Run with async task", async () => {
-            // Arrange ----------
-            const asyncTaskDelegate = jest.fn(async () => {});
-            const asyncTask = Boot.task(asyncTaskDelegate);
-            const boot = new Boot().add(asyncTask);
+        describe("D3. Task fail behaviour", () => {
+            describe("D3.1. Required task throws error on fail", () => {
+                test("D3.1a. Required sync task throws error", async () => {
+                    // Arrange --------------
+                    const expectedError = Error("Test Error");
+                    const requiredTask = Boot.task(() => {
+                        throw expectedError;
+                    });
+                    const boot = new Boot().add(requiredTask);
 
-            // Act --------------
-            await boot.runAsync();
+                    // Act ------------------
+                    let error: Error | undefined;
+                    try {
+                        await boot.runAsync();
+                    } catch (e) {
+                        if (e instanceof Error) error = e;
+                    }
 
-            // Assert -----------
-            expect(asyncTaskDelegate).toHaveBeenCalledTimes(1);
-            expect(boot.getTaskStatus(asyncTask)).toBe(TaskStatus.Completed);
+                    // Assert ---------------
+                    expect(error).not.toBeUndefined();
+                    expect(boot.status).toBe(BootStatus.Fail);
+                    expect(boot.getTaskStatus(requiredTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(requiredTask)).toBe(
+                        expectedError,
+                    );
+                });
+
+                test("D3.1b. Required async task throws error", async () => {
+                    // Arrange --------------
+                    const expectedError = Error("Test Error");
+                    const requiredTask = Boot.task(async () => {
+                        throw expectedError;
+                    });
+                    const boot = new Boot().add(requiredTask);
+
+                    // Act ------------------
+                    let error: Error | undefined;
+                    try {
+                        await boot.runAsync();
+                    } catch (e) {
+                        if (e instanceof Error) error = e;
+                    }
+
+                    // Assert ---------------
+                    expect(error).not.toBeUndefined();
+                    expect(boot.status).toBe(BootStatus.Fail);
+                    expect(boot.getTaskStatus(requiredTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(requiredTask)).toBe(
+                        expectedError,
+                    );
+                });
+            });
+
+            describe("D3.2. Optional task fail without error", () => {
+                test("D3.2a. Optional sync task fail without error", async () => {
+                    // Arrange ----------------------
+                    const expectedError = Error("Test Error");
+                    const optionalTask = Boot.task(
+                        () => {
+                            throw expectedError;
+                        },
+                        { optional: true },
+                    );
+                    const boot = new Boot().add(optionalTask);
+
+                    // Act -------------------------
+                    await boot.runAsync();
+
+                    // Assert ----------------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(boot.getTaskStatus(optionalTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(optionalTask)).toBe(
+                        expectedError,
+                    );
+                });
+
+                test("D3.2b. Optional async task fail without error", async () => {
+                    // Arrange ----------------------
+                    const expectedError = Error("Test Error");
+                    const optionalTask = Boot.task(
+                        async () => {
+                            throw expectedError;
+                        },
+                        { optional: true },
+                    );
+                    const boot = new Boot().add(optionalTask);
+
+                    // Act -------------------------
+                    await boot.runAsync();
+
+                    // Assert ----------------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(boot.getTaskStatus(optionalTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(optionalTask)).toBe(
+                        expectedError,
+                    );
+                });
+            });
         });
 
-        test("D3. Run with many tasks", async () => {
-            // Arrange ------------
-            const syncTaskADelegate = jest.fn();
-            const taskA = Boot.task(syncTaskADelegate);
-            const syncTaskBDelegate = jest.fn();
-            const taskB = Boot.task(syncTaskBDelegate);
+        describe("D4. Execution important task with dependencies", () => {
+            describe("D4.1. Important task dependency", () => {
+                test("D4.1a. Strong dependency completed", async () => {
+                    // Arrange ---------------
+                    const dependencyTask = Boot.task(jest.fn());
+                    const task = Boot.task(jest.fn(), [dependencyTask]);
+                    const boot = new Boot().add(task).add(dependencyTask);
 
-            const boot = new Boot().add(taskA).add(taskB);
+                    // Act -------------------
+                    await boot.runAsync();
 
-            // Act ----------------
-            await boot.runAsync();
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(dependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+                });
 
-            // Assert -------------
-            expect(syncTaskADelegate).toHaveBeenCalledTimes(1);
-            expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
+                test("D4.1b. Weak dependency completed", async () => {
+                    // Arrange ---------------
+                    const dependencyTask = Boot.task(jest.fn());
+                    const task = Boot.task(jest.fn(), [
+                        { task: dependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot().add(task).add(dependencyTask);
 
-            expect(syncTaskBDelegate).toHaveBeenCalledTimes(1);
-            expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
+                    // Act -------------------
+                    await boot.runAsync();
+
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(dependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Completed,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+                });
+
+                test("D4.1c. Strong dependency failed", async () => {
+                    // Arrange ---------------
+                    const expectedError = new Error("Test Error");
+                    const dependencyTask = Boot.task(
+                        jest.fn(() => {
+                            throw expectedError;
+                        }),
+                    );
+                    const task = Boot.task(jest.fn(), [dependencyTask]);
+                    const boot = new Boot().add(task).add(dependencyTask);
+
+                    // Act -------------------
+                    const processError = catchErrorAsync(() => boot.runAsync());
+
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Fail);
+                    expect(processError).not.toBeUndefined();
+                    expect(dependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(dependencyTask)).toBe(
+                        expectedError,
+                    );
+                    expect(task.delegate).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Fail);
+                });
+
+                test("D4.1d. Weak dependency failed", async () => {
+                    // Arrange ---------------
+                    const expectedError = new Error("Test Error");
+                    const dependencyTask = Boot.task(
+                        jest.fn(() => {
+                            throw expectedError;
+                        }),
+                    );
+                    const task = Boot.task(jest.fn(), [
+                        { task: dependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot().add(task).add(dependencyTask);
+
+                    // Act -------------------
+                    const processError = await catchErrorAsync(() =>
+                        boot.runAsync(),
+                    );
+
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Fail);
+                    expect(processError).not.toBeUndefined();
+                    expect(dependencyTask.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Fail,
+                    );
+                    expect(boot.getTaskFailReason(dependencyTask)).toBe(
+                        expectedError,
+                    );
+                    expect(task.delegate).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Fail);
+                });
+
+                test("D4.1e. Strong dependency not added", async () => {
+                    // Arrange ---------------
+                    const dependencyTask = Boot.task(jest.fn());
+                    const task = Boot.task(jest.fn(), [dependencyTask]);
+                    const boot = new Boot().add(task);
+
+                    // Act -------------------
+                    const processError = await catchErrorAsync(() =>
+                        boot.runAsync(),
+                    );
+
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Fail);
+                    expect(processError).not.toBeUndefined();
+                    expect(dependencyTask.delegate).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Unknown,
+                    );
+                    expect(task.delegate).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Fail);
+                });
+
+                test("D4.1f. Weak dependency not added", async () => {
+                    // Arrange ---------------
+                    const dependencyTask = Boot.task(jest.fn());
+                    const task = Boot.task(jest.fn(), [
+                        { task: dependencyTask, weak: true },
+                    ]);
+                    const boot = new Boot().add(task);
+
+                    // Act -------------------
+                    await boot.runAsync();
+
+                    // Assert ----------------
+                    expect(boot.status).toBe(BootStatus.Completed);
+                    expect(dependencyTask.delegate).not.toHaveBeenCalled();
+                    expect(boot.getTaskStatus(dependencyTask)).toBe(
+                        TaskStatus.Unknown,
+                    );
+                    expect(task.delegate).toHaveBeenCalled();
+                    expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+                });
+            });
+        });
+        describe("D4.1. Optional task dependency", () => {
+            test("D4.1b. Weak dependency completed", async () => {
+                // Arrange --------------
+                const optionalDependencyTask = Boot.task(jest.fn(), {
+                    optional: true,
+                });
+                const task = Boot.task(jest.fn(), [
+                    { task: optionalDependencyTask, weak: true },
+                ]);
+                const boot = new Boot().add(task).add(optionalDependencyTask);
+
+                // Act ------------------
+                await boot.runAsync();
+
+                // Assert ---------------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(optionalDependencyTask.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                    TaskStatus.Completed,
+                );
+                expect(task.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+            });
+            test("D4.1d. Weak dependency failed", async () => {
+                // Arrange --------------
+                const expectedError = Error("Test Error");
+                const optionalDependencyTask = Boot.task(
+                    jest.fn(() => {
+                        throw expectedError;
+                    }),
+                    { optional: true },
+                );
+                const task = Boot.task(jest.fn(), [
+                    { task: optionalDependencyTask, weak: true },
+                ]);
+                const boot = new Boot().add(task).add(optionalDependencyTask);
+
+                // Act ------------------
+                await boot.runAsync();
+
+                // Assert ---------------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(optionalDependencyTask.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                    TaskStatus.Fail,
+                );
+                expect(boot.getTaskFailReason(optionalDependencyTask)).toBe(
+                    expectedError,
+                );
+                expect(task.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+            });
+            test("D4.1d. Weak dependency skipped", async () => {
+                // Arrange ------------------
+                const notAddedTask = Boot.task(() => {}); // For "Skipped" status simulation
+                const optionalDependencyTask = Boot.task(jest.fn(), {
+                    deps: [notAddedTask],
+                    optional: true,
+                });
+                const task = Boot.task(jest.fn(), [
+                    { task: optionalDependencyTask, weak: true },
+                ]);
+                const boot = new Boot().add(task).add(optionalDependencyTask);
+
+                // Act ------------------
+                await boot.runAsync();
+
+                // Assert ---------------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(optionalDependencyTask.delegate).not.toHaveBeenCalled();
+                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                    TaskStatus.Skipped,
+                );
+                expect(task.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+            });
+            test("D4.1f. Weak dependency not added", async () => {
+                // Arrange --------------
+                const optionalDependencyTask = Boot.task(jest.fn(), {
+                    optional: true,
+                });
+                const task = Boot.task(jest.fn(), [
+                    { task: optionalDependencyTask, weak: true },
+                ]);
+                const boot = new Boot().add(task);
+
+                // Act ------------------
+                await boot.runAsync();
+
+                // Assert ---------------
+                expect(boot.status).toBe(BootStatus.Completed);
+                expect(optionalDependencyTask.delegate).not.toHaveBeenCalled();
+                expect(boot.getTaskStatus(optionalDependencyTask)).toBe(
+                    TaskStatus.Unknown,
+                );
+                expect(task.delegate).toHaveBeenCalled();
+                expect(boot.getTaskStatus(task)).toBe(TaskStatus.Completed);
+            });
         });
     });
 });
