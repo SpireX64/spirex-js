@@ -370,7 +370,7 @@ export class Boot {
 
             taskState.status = TaskStatus.Running;
             try {
-                // Запускаем делекат задачи.
+                // Запускаем делегат задачи.
                 const mayBePromise = task.delegate();
 
                 // Если делегат возвращает Promise, ждем его завершения.
@@ -468,6 +468,8 @@ export class Boot {
 
         if (tasksToProcess.length > 0) {
             this.processTasks(tasksToProcess);
+        } else if (this._awaitersQueue.length === 0) {
+            this.finalize();
         }
     }
 
