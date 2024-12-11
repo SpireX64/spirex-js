@@ -1868,6 +1868,34 @@ describe("Boot", () => {
                 expect(taskA.delegate).toHaveBeenCalledTimes(1);
                 expect(taskB.delegate).toHaveBeenCalledTimes(1);
             });
+
+            test("E4.3. Re-run failed & skipped tasks", async () => {
+                // Arrange -------
+                const task1 = Boot.task(jest.fn());
+                const task2 = Boot.task(jest.fn(), {
+                    optional: true,
+                    deps: [task1],
+                });
+
+                const bootA = new Boot().add(task2);
+
+                const bootB = new Boot(bootA).add(task1);
+
+                // Act -----------
+                await bootA.runAsync();
+                await bootB.runAsync({
+                    synchronizeWithParents: true,
+                    resetFailedTasks: true,
+                });
+
+                // Assert --------
+                expect(bootA.getTaskStatus(task2)).toBe(TaskStatus.Skipped);
+                expect(bootB.getTaskStatus(task1)).toBe(TaskStatus.Completed);
+                expect(bootB.getTaskStatus(task2)).toBe(TaskStatus.Completed);
+
+                expect(task1.delegate).toHaveBeenCalledTimes(1);
+                expect(task2.delegate).toHaveBeenCalledTimes(1);
+            });
         });
     });
 });

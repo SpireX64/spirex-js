@@ -64,6 +64,7 @@ export type TBootTaskOptions = {
 export type TBootProcessOptions = {
     abortSignal?: AbortSignal;
     synchronizeWithParents?: boolean;
+    resetFailedTasks?: boolean;
 };
 
 /**
@@ -335,7 +336,9 @@ export class Boot {
     public async runAsync(options?: TBootProcessOptions): Promise<void> {
         if (this._status !== BootStatus.Idle) throw new Error(ERR_BOOT_STARTED);
 
-        if (options?.synchronizeWithParents) this.synchronizeWithParents();
+        if (options?.synchronizeWithParents) {
+            this.synchronizeWithParents(options.resetFailedTasks);
+        }
 
         const rootTasks = this.findRootTasksAndLinkAwaiters();
         if (rootTasks.length === 0) return this.handleEmptyRootState();
@@ -383,6 +386,9 @@ export class Boot {
         const roots: TBootTask[] = [];
         const maybeRoots: TBootTask[] = [];
         this._tasksSet.forEach((task) => {
+            const state = this._tasksStateMap.get(task)!;
+            if (state.status !== TaskStatus.Idle) return;
+
             let isRoot = true;
             let mayBeRoot = true;
 
@@ -401,10 +407,10 @@ export class Boot {
 
                     if (dependencyState) {
                         dependencyState.awaiters.push(task);
-                        isRoot = false;
+                        if (dependencyState.status === TaskStatus.Idle)
+                            isRoot = false;
                     } else if (!dependency.weak) {
                         if (task.optional) {
-                            const state = this._tasksStateMap.get(task)!;
                             state.status = TaskStatus.Skipped;
                         }
                         isRoot = false;
@@ -658,13 +664,18 @@ export class Boot {
     }
 
     /** @internal */
-    private synchronizeWithParents() {
+    private synchronizeWithParents(resetFailed?: boolean) {
         this._parentsSet?.forEach((parent) => {
             parent._tasksStateMap.forEach((state, task) => {
-                console.log(
-                    `Sync ${task.name}. Status: ${state.status}, Fail: ${state.failReason}`,
-                );
-                this._tasksStateMap.set(task, state);
+                const newState = { ...state };
+                if (
+                    resetFailed &&
+                    (state.status === TaskStatus.Fail ||
+                        state.status === TaskStatus.Skipped)
+                ) {
+                    newState.status = TaskStatus.Idle;
+                }
+                this._tasksStateMap.set(task, newState);
             });
         });
     }
