@@ -1,6 +1,6 @@
 {
   "name": "@spirex/js-boot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "private": false,
   "description": "Efficient JavaScript app initialization library with staged execution and dependency management",
@@ -10,6 +10,7 @@
     "initializer",
     "initialization",
     "app init",
+    "app boot",
     "application bootstrapping",
     "task managment",
     "async tasks",
