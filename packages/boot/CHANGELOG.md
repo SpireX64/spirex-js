@@ -1,14 +1,17 @@
 # Version History
 
-## 1.0.1 (2024-09-XX)
+## 1.1.0 (2024-12-ХХ)
 
 ### Features
-- Support for AppBoot instance inheritance
-- Automatic resource release after completion
+- Process inheritance support
+- Process cancellation with `AbortSignal`
 - Task status synchronization with parent processes
+- Ability to get statuses from task's delegate
+- Better error messages
 
 ### Fixes
 - Extend the previous promise instead of replacing it.
+- Performance issues
 
 ### Documentation
 - Added more information about the package in package.json
