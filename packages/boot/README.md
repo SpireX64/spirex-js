@@ -42,12 +42,12 @@ Therefore, it needs to be imported into all files
 where initialization tasks are defined.
 
 ```ts
-import { AppBoot } from "@spirex/js-boot";
+import { Boot } from "@spirex/js-boot";
 ```
 
 
 ### 2. Create initialization tasks
-The `AppBoot.task()` method is used to create initialization tasks.
+The `Boot.task()` method is used to create initialization tasks.
 It accepts a function containing the executable code for the task.
 The function can be synchronous or asynchronous.
 The task name is optional, but helps with logging tasks to the console.
@@ -57,12 +57,12 @@ This ensures that the task will start execution
 as soon as all dependencies are completed.
 
 ```ts
-const taskA = AppBoot.task('A', async () => {
+const taskA = Boot.task(async () => {
     console.log('Run task A');
     await someAsyncFunction();
 });
 
-const taskB = AppBoot.task('B', () => {
+const taskB = Boot.task(() => {
     console.log('Run task B');
 }, [taskA]); // Depends on 'A'
 ```
@@ -73,7 +73,7 @@ Tasks are added to the created initializer using the `add(..)` method.
 You can add tasks one by one or multiple at once as an array.
 
 ```ts
-const boot = new AppBoot()
+const boot = new Boot()
     .add([taskA, taskB]);
 ```
 
