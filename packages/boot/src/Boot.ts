@@ -93,6 +93,25 @@ export enum BootStatus {
     Cancelled,
 }
 
+export namespace BootStatus {
+    export function nameOf(status: BootStatus): string {
+        switch (status) {
+            case BootStatus.Idle:
+                return "Idle";
+            case BootStatus.Running:
+                return "Running";
+            case BootStatus.Finalizing:
+                return "Finalizing";
+            case BootStatus.Completed:
+                return "Completed";
+            case BootStatus.Fail:
+                return "Fail";
+            case BootStatus.Cancelled:
+                return "Cancelled";
+        }
+    }
+}
+
 export enum TaskStatus {
     Unknown,
     Idle,
@@ -101,6 +120,27 @@ export enum TaskStatus {
     Completed,
     Fail,
     Skipped,
+}
+
+export namespace TaskStatus {
+    export function nameOf(status: TaskStatus): string {
+        switch (status) {
+            case TaskStatus.Unknown:
+                return "Unknown";
+            case TaskStatus.Idle:
+                return "Idle";
+            case TaskStatus.Waiting:
+                return "Waiting";
+            case TaskStatus.Running:
+                return "Running";
+            case TaskStatus.Completed:
+                return "Completed";
+            case TaskStatus.Fail:
+                return "Fail";
+            case TaskStatus.Skipped:
+                return "Skipped";
+        }
+    }
 }
 
 /** @internal */
@@ -113,16 +153,46 @@ type TTaskState = {
     failReason?: Error;
 };
 
-const ERR_BOOT_STARTED = "Boot process already started";
-const ERR_ADD_TASK_AFTER_START = "Attempt to add tasks after process started";
-const ERR_PRIORITY_NOT_A_NUMBER = "Priority must be a number";
-const ERR_STRONG_DEPENDENCY_OPTIONAL_TASK =
-    "An important task should not have a strong dependency on an optional task.";
-const ERR_IMPORTANT_TASK_FAIL = "Important task fail";
-const ERR_IMPORTANT_TASK_SKIPPED = "Important task skipped";
-const ERR_PROCESS_CANCELLED = "Process was cancelled";
-
+export const DEFAULT_TASK_NAME = "[unnamed]";
 export const DEFAULT_TASK_PRIORITY: number = 0;
+
+const getTaskName = (name: string) =>
+    name.length > 0 ? name : DEFAULT_TASK_NAME;
+
+export enum BootError {
+    ALREADY_STARTED = "ERR_ALREADY_STARTED",
+    TASK_ADDITION_DENIED = "ERR_TASK_ADDITION_DENIED",
+    INVALID_TASK_PRIORITY = "ERR_INVALID_TASK_PRIORITY",
+    STRONG_DEPENDENCY_ON_OPTIONAL = "ERR_STRONG_DEPENDENCY_ON_OPTIONAL",
+    IMPORTANT_TASK_FAILED = "ERR_IMPORTANT_TASK_FAILED",
+    IMPORTANT_TASK_SKIPPED = "ERR_IMPORTANT_TASK_SKIPPED",
+    NO_ROOT_TASKS = "ERR_NO_ROOT_TASKS",
+    PROCESS_ABORTED = "ERR_PROCESS_ABORTED",
+}
+
+const ErrorMessage = {
+    [BootError.ALREADY_STARTED]: (status: BootStatus) =>
+        `Boot[${BootError.ALREADY_STARTED}]: The boot process cannot be started because it is already running or has completed. Current status: ${BootStatus.nameOf(status)}`,
+    [BootError.TASK_ADDITION_DENIED]: (status: BootStatus) =>
+        `Boot[${BootError.TASK_ADDITION_DENIED}]: Tasks cannot be added after the boot process has started. Current status: ${BootStatus.nameOf(status)}.`,
+    [BootError.INVALID_TASK_PRIORITY]: (taskName: string, priority: unknown) =>
+        `Boot[${BootError.INVALID_TASK_PRIORITY}]: The provided task priority for task "${getTaskName(taskName)}" must be a number. Received: ${priority}.`,
+    [BootError.STRONG_DEPENDENCY_ON_OPTIONAL]: (
+        importantTaskName: string,
+        optionalTaskName: string,
+    ) =>
+        `Boot[${BootError.STRONG_DEPENDENCY_ON_OPTIONAL}]: Important task "${getTaskName(importantTaskName)}" cannot have a strong dependency on optional task "${getTaskName(optionalTaskName)}".`,
+    [BootError.IMPORTANT_TASK_FAILED]: (taskName: string, reason: string) =>
+        `Boot[${BootError.IMPORTANT_TASK_FAILED}]: Important task "${getTaskName(taskName)}" failed during execution. Reason: ${reason}.`,
+    [BootError.IMPORTANT_TASK_SKIPPED]: (
+        taskName: string,
+        dependencyName: string,
+    ) =>
+        `Boot[${BootError.IMPORTANT_TASK_SKIPPED}]: Important task "${getTaskName(taskName)}" was skipped because dependency "${getTaskName(dependencyName)}" was not met.`,
+    [BootError.NO_ROOT_TASKS]: `Boot[${BootError.NO_ROOT_TASKS}]: No root tasks (tasks without unresolved dependencies) were found. Ensure that at least one task has no unmet dependencies.`,
+    [BootError.PROCESS_ABORTED]: (reason: string) =>
+        `Boot[${BootError.PROCESS_ABORTED}]: The boot process was aborted. Reason: ${reason}.`,
+} as const;
 
 function isPromise(obj: any): obj is Promise<unknown> {
     return obj != null && typeof obj === "object" && "then" in obj;
@@ -186,21 +256,32 @@ export class Boot implements IBootProcess {
                 dependencies = options.deps;
             }
         }
+        const name = options?.name || delegate.name;
 
         const priority = options?.priority ?? DEFAULT_TASK_PRIORITY;
-        if (isNaN(priority)) throw new Error(ERR_PRIORITY_NOT_A_NUMBER);
+        if (isNaN(priority))
+            throw new Error(
+                ErrorMessage[BootError.INVALID_TASK_PRIORITY](
+                    name,
+                    options?.priority,
+                ),
+            );
 
         const optional = Boolean(options?.optional);
         return Object.freeze({
             delegate,
             priority,
             optional,
-            name: options?.name || delegate.name,
+            name,
             dependencies:
                 dependencies?.map((it) => {
                     const dep = Object.freeze("task" in it ? it : { task: it });
                     if (!optional && dep.task.optional && !dep.weak)
-                        throw new Error(ERR_STRONG_DEPENDENCY_OPTIONAL_TASK);
+                        throw new Error(
+                            ErrorMessage[
+                                BootError.STRONG_DEPENDENCY_ON_OPTIONAL
+                            ](name, dep.task.name),
+                        );
                     return dep;
                 }) ?? [],
         });
@@ -295,10 +376,11 @@ export class Boot implements IBootProcess {
     public add(
         taskOrTasks: TBootTask | readonly (TBootTask | TFalsy)[] | TFalsy,
     ): Boot {
-        if (this._status !== BootStatus.Idle) {
-            throw new Error(ERR_ADD_TASK_AFTER_START);
-        }
         if (taskOrTasks) {
+            if (this._status !== BootStatus.Idle)
+                throw new Error(
+                    ErrorMessage[BootError.TASK_ADDITION_DENIED](this.status),
+                );
             if (Array.isArray(taskOrTasks)) {
                 taskOrTasks.forEach((task) => this.add(task));
             } else {
@@ -341,7 +423,10 @@ export class Boot implements IBootProcess {
      * @throws {Error} If process already started
      */
     public async runAsync(options?: TBootProcessOptions): Promise<void> {
-        if (this._status !== BootStatus.Idle) throw new Error(ERR_BOOT_STARTED);
+        if (this._status !== BootStatus.Idle)
+            throw new Error(
+                ErrorMessage[BootError.ALREADY_STARTED](this._status),
+            );
 
         if (options?.synchronizeWithParents) {
             this.synchronizeWithParents(options.resetFailedTasks);
@@ -458,6 +543,9 @@ export class Boot implements IBootProcess {
     private processTasks(tasks: readonly TBootTask[]): void {
         if (this.status !== BootStatus.Running) return;
         const taskPromises = tasks.map(async (task) => {
+            // Если задача процесс упал, нет смысла продолжать очередь задач
+            if (this.status === BootStatus.Fail) return;
+
             const taskState = this._tasksStateMap.get(task)!;
 
             // Отправляем ожидающие задачи в очередь
@@ -485,7 +573,14 @@ export class Boot implements IBootProcess {
                 taskState.status = TaskStatus.Fail;
                 taskState.failReason = error as Error;
                 if (!task.optional) {
-                    this.fail(ERR_IMPORTANT_TASK_FAIL);
+                    this.fail(
+                        ErrorMessage[BootError.IMPORTANT_TASK_FAILED](
+                            task.name,
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                        ),
+                    );
                     return;
                 }
             }
@@ -525,6 +620,7 @@ export class Boot implements IBootProcess {
         // Проверяем задачи в очереди
         for (let task of this._awaitersQueue) {
             let skip = false;
+            let skipCause = "";
             let canBeProcessed = true;
             for (let dependency of task.dependencies) {
                 const dependencyState = this._tasksStateMap.get(
@@ -549,8 +645,9 @@ export class Boot implements IBootProcess {
                         dependencyState.status === TaskStatus.Fail ||
                         dependencyState.status === TaskStatus.Skipped
                     ) {
-                        skip = true;
                         canBeProcessed = false;
+                        skip = true;
+                        skipCause = dependency.task.name;
                         break;
                     }
 
@@ -571,7 +668,12 @@ export class Boot implements IBootProcess {
                     state.status = TaskStatus.Skipped;
                 } else {
                     state.status = TaskStatus.Fail;
-                    this.fail(ERR_IMPORTANT_TASK_SKIPPED);
+                    this.fail(
+                        ErrorMessage[BootError.IMPORTANT_TASK_SKIPPED](
+                            task.name,
+                            skipCause,
+                        ),
+                    );
                 }
             } else newAwaitersQueue.push(task);
         }
@@ -637,7 +739,12 @@ export class Boot implements IBootProcess {
     /** @internal */
     private cancelProcess(): void {
         if (this._status === BootStatus.Cancelled) return;
-        const error = this._abortSignal?.reason ?? Error(ERR_PROCESS_CANCELLED);
+        let reason = this._abortSignal?.reason
+            ? this._abortSignal.reason instanceof Error
+                ? this._abortSignal.reason.message
+                : String(this._abortSignal.reason)
+            : "Cancelled";
+        const error = Error(ErrorMessage[BootError.PROCESS_ABORTED](reason));
         this._status = BootStatus.Cancelled;
         this.disposeAwaitersQueue(error);
         this._processReject?.(error);
@@ -659,7 +766,7 @@ export class Boot implements IBootProcess {
         }
         if (hasSkippedImportantTasks) {
             this._status = BootStatus.Fail;
-            return Promise.reject(Error(ERR_IMPORTANT_TASK_SKIPPED));
+            return Promise.reject(Error(ErrorMessage[BootError.NO_ROOT_TASKS]));
         } else {
             this._status = BootStatus.Completed;
             return Promise.resolve();

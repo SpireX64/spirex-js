@@ -2,6 +2,7 @@
 
 import {
     Boot,
+    BootError,
     BootStatus,
     DEFAULT_TASK_PRIORITY,
     hasDependency,
@@ -184,17 +185,25 @@ describe("Boot", () => {
             test("A3.2c. Creating a task with an invalid priority will throw an error", () => {
                 // Arrange --------
                 const invalidPriority = NaN;
+                const taskName = "TestTask";
 
                 // Act ------------
                 let error: Error | null = null;
                 try {
-                    Boot.task(noop, { priority: invalidPriority });
+                    Boot.task(noop, {
+                        priority: invalidPriority,
+                        name: taskName,
+                    });
                 } catch (e) {
                     if (e instanceof Error) error = e;
                 }
 
                 // Assert ----------
                 expect(error).not.toBeNull();
+                expect(error?.message).toContain(
+                    BootError.INVALID_TASK_PRIORITY,
+                );
+                expect(error?.message).toContain(taskName);
             });
         });
 
@@ -394,18 +403,30 @@ describe("Boot", () => {
 
             test("A6.2a. An important task should not have a strong dependency on an optional task", () => {
                 // Arrange ------
-                const optionalTask = Boot.task(noop, { optional: true });
+                const optionalTask = Boot.task(noop, {
+                    optional: true,
+                    name: "OptionalTask",
+                });
+                const importantTaskName = "ImportantTask";
 
                 // Act ----------
                 let error: Error | null = null;
                 try {
-                    Boot.task(noop, [optionalTask]);
+                    Boot.task(noop, {
+                        deps: [optionalTask],
+                        name: importantTaskName,
+                    });
                 } catch (e) {
                     if (e instanceof Error) error = e;
                 }
 
                 // Assert -------
                 expect(error).not.toBeNull();
+                expect(error?.message).toContain(
+                    BootError.STRONG_DEPENDENCY_ON_OPTIONAL,
+                );
+                expect(error?.message).toContain(importantTaskName);
+                expect(error?.message).toContain(optionalTask.name);
             });
 
             test("A6.2b. An important task may have a weak dependency on an optional task", () => {
@@ -590,6 +611,8 @@ describe("Boot", () => {
 
             // Assert ------------
             expect(error).not.toBeUndefined();
+            expect(error?.message).toContain(BootError.TASK_ADDITION_DENIED);
+            expect(error?.message).toContain(BootStatus.nameOf(boot.status));
         });
     });
 
@@ -758,9 +781,12 @@ describe("Boot", () => {
                 test("D3.1a. Required sync task throws error", async () => {
                     // Arrange --------------
                     const expectedError = Error("Test Error");
-                    const requiredTask = Boot.task(() => {
-                        throw expectedError;
-                    });
+                    const requiredTask = Boot.task(
+                        () => {
+                            throw expectedError;
+                        },
+                        { name: "MyImportantTask" },
+                    );
                     const boot = new Boot().add(requiredTask);
 
                     // Act ------------------
@@ -773,6 +799,10 @@ describe("Boot", () => {
 
                     // Assert ---------------
                     expect(error).not.toBeUndefined();
+                    expect(error?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(error?.message).toContain(requiredTask.name);
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(boot.getTaskStatus(requiredTask)).toBe(
                         TaskStatus.Fail,
@@ -800,6 +830,10 @@ describe("Boot", () => {
 
                     // Assert ---------------
                     expect(error).not.toBeUndefined();
+                    expect(error?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(error?.message).toContain(requiredTask.name);
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(boot.getTaskStatus(requiredTask)).toBe(
                         TaskStatus.Fail,
@@ -910,16 +944,28 @@ describe("Boot", () => {
                         jest.fn(() => {
                             throw expectedError;
                         }),
+                        { name: "TaskWithError" },
                     );
                     const task = Boot.task(jest.fn(), [dependencyTask]);
                     const boot = new Boot().add(task).add(dependencyTask);
 
                     // Act -------------------
-                    const processError = catchErrorAsync(() => boot.runAsync());
+                    const processError = await catchErrorAsync(() =>
+                        boot.runAsync(),
+                    );
 
                     // Assert ----------------
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(processError).not.toBeUndefined();
+                    expect(processError?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(processError?.message).toContain(
+                        dependencyTask.name,
+                    );
+                    expect(processError?.message).toContain(
+                        expectedError.message,
+                    );
                     expect(dependencyTask.delegate).toHaveBeenCalled();
                     expect(boot.getTaskStatus(dependencyTask)).toBe(
                         TaskStatus.Fail,
@@ -952,6 +998,15 @@ describe("Boot", () => {
                     // Assert ----------------
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(processError).not.toBeUndefined();
+                    expect(processError?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(processError?.message).toContain(
+                        dependencyTask.name,
+                    );
+                    expect(processError?.message).toContain(
+                        expectedError.message,
+                    );
                     expect(dependencyTask.delegate).toHaveBeenCalled();
                     expect(boot.getTaskStatus(dependencyTask)).toBe(
                         TaskStatus.Fail,
@@ -977,6 +1032,10 @@ describe("Boot", () => {
                     // Assert ----------------
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(processError).not.toBeUndefined();
+
+                    expect(processError?.message).toContain(
+                        BootError.NO_ROOT_TASKS,
+                    );
                     expect(dependencyTask.delegate).not.toHaveBeenCalled();
                     expect(boot.getTaskStatus(dependencyTask)).toBe(
                         TaskStatus.Unknown,
@@ -1174,6 +1233,7 @@ describe("Boot", () => {
                         jest.fn(() => {
                             throw expectedError;
                         }),
+                        { name: "MyErrorTask" },
                     );
                     const task = Boot.task(jest.fn(), {
                         deps: [dependencyTask],
@@ -1189,6 +1249,15 @@ describe("Boot", () => {
                     // Assert --------------
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(processError).not.toBeUndefined();
+                    expect(processError?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(processError?.message).toContain(
+                        dependencyTask.name,
+                    );
+                    expect(processError?.message).toContain(
+                        expectedError.message,
+                    );
                     expect(dependencyTask.delegate).toHaveBeenCalled();
                     expect(boot.getTaskStatus(dependencyTask)).toBe(
                         TaskStatus.Fail,
@@ -1207,6 +1276,7 @@ describe("Boot", () => {
                         jest.fn(() => {
                             throw expectedError;
                         }),
+                        { name: "MyErrorTask" },
                     );
                     const task = Boot.task(jest.fn(), {
                         deps: [{ task: dependencyTask, weak: true }],
@@ -1222,6 +1292,15 @@ describe("Boot", () => {
                     // Assert --------------
                     expect(boot.status).toBe(BootStatus.Fail);
                     expect(processError).not.toBeUndefined();
+                    expect(processError?.message).toContain(
+                        BootError.IMPORTANT_TASK_FAILED,
+                    );
+                    expect(processError?.message).toContain(
+                        dependencyTask.name,
+                    );
+                    expect(processError?.message).toContain(
+                        expectedError.message,
+                    );
                     expect(dependencyTask.delegate).toHaveBeenCalled();
                     expect(boot.getTaskStatus(dependencyTask)).toBe(
                         TaskStatus.Fail,
@@ -1659,12 +1738,15 @@ describe("Boot", () => {
 
             // Assert --------------
             expect(error).not.toBeUndefined();
+            expect(error?.message).toContain(BootError.ALREADY_STARTED);
+            expect(error?.message).toContain(BootStatus.nameOf(boot.status));
             expect(boot.status).toBe(BootStatus.Completed);
         });
 
         describe("D8. Process cancellation with abort controller", () => {
             test("D8.1. Cancel process with abort controller", async () => {
                 // Arrange --------
+                const expectedReason = "Test Cancel";
                 const task = Boot.task(() => delayAsync(0)); // microtask simulation
                 const boot = new Boot().add(task);
                 const abortController = new AbortController();
@@ -1674,17 +1756,15 @@ describe("Boot", () => {
                     abortSignal: abortController.signal,
                 });
 
-                abortController.abort();
-                let processError: DOMException | undefined;
-                try {
-                    await promise;
-                } catch (e) {
-                    if (e instanceof DOMException) processError = e;
-                }
-
+                abortController.abort(expectedReason);
+                let processError = await catchErrorAsync(() => promise);
                 // Assert ---------
                 expect(boot.status).toBe(BootStatus.Cancelled);
                 expect(processError).not.toBeUndefined();
+                expect(processError?.message).toContain(
+                    BootError.PROCESS_ABORTED,
+                );
+                expect(processError?.message).toContain(expectedReason);
             });
 
             test("D8.2. Handle abort signal in task", async () => {
