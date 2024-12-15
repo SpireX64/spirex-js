@@ -198,10 +198,6 @@ function isPromise(obj: any): obj is Promise<unknown> {
     return obj != null && typeof obj === "object" && "then" in obj;
 }
 
-export function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
-    return task.dependencies.some((it) => it.task === dependency);
-}
-
 function comparePriority(lhv: TBootTask, rhv: TBootTask): number {
     return lhv.priority - rhv.priority;
 }
