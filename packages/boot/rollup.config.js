@@ -27,7 +27,7 @@ exports.default = [
             name: "Boot",
             file: `${output}.js`,
             format: "umd",
-            sourcemap: release ? "inline" : false,
+            sourcemap: release ? false : "inline",
         },
         plugins: [typescript(), terserPlugin],
     },
