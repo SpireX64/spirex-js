@@ -761,7 +761,7 @@ describe("Boot", () => {
                 );
 
                 const boot = new Boot().add([taskA, taskB, taskC, taskD]);
-                const expectedSequence = "CADB";
+                const expectedSequence = "BDAC";
 
                 // Act ---------------
                 await boot.runAsync();
@@ -1674,7 +1674,7 @@ describe("Boot", () => {
 
                 // Assert ------
                 expect(boot.status).toBe(BootStatus.Completed);
-                expect(executionSequence).toBe("ACBDE");
+                expect(executionSequence).toBe("ADBCE");
                 expect(boot.getTaskStatus(taskA)).toBe(TaskStatus.Completed);
                 expect(boot.getTaskStatus(taskB)).toBe(TaskStatus.Completed);
                 expect(boot.getTaskStatus(taskC)).toBe(TaskStatus.Completed);

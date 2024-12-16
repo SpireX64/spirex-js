@@ -203,7 +203,7 @@ export function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
 }
 
 function comparePriority(lhv: TBootTask, rhv: TBootTask): number {
-    return lhv.priority - rhv.priority;
+    return rhv.priority - lhv.priority;
 }
 
 export class Boot implements IBootProcess {
