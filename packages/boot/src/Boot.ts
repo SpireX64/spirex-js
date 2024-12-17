@@ -81,7 +81,7 @@ export type TBootProcessOptions = {
     /** Optional AbortSignal for process cancellation */
     abortSignal?: AbortSignal;
     /** Sync task statuses with parent processes */
-    synchronizeWithParents?: boolean;
+    syncWithParents?: boolean;
     /** Re-run failed/skipped tasks from parent processes. */
     resetFailedTasks?: boolean;
 };
@@ -411,7 +411,7 @@ export class Boot implements IBootProcess {
                 ErrorMessage[BootError.ALREADY_STARTED](this._status),
             );
 
-        if (options?.synchronizeWithParents) {
+        if (options?.syncWithParents) {
             this.synchronizeWithParents(options.resetFailedTasks);
         }
 

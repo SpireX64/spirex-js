@@ -62,11 +62,11 @@ await processB.runAsync();
 In this case, `taskA` runs twice—once for each process.
 
 ## 5. Synchronizing Processes
-To synchronize task states across processes, use the `synchronizeWithParents` flag:
+To synchronize task states across processes, use the `syncWithParents` flag:
 ```ts
 await processA.runAsync();
 // Task A completed!
-await processB.runAsync({ synchronizeWithParents: true });
+await processB.runAsync({ syncWithParents: true });
 // Task B completed!
 ```
 In this example, `taskA is` not executed again in `processB` because it was already completed in `processA`.
@@ -75,7 +75,7 @@ In this example, `taskA is` not executed again in `processB` because it was alre
 To rerun tasks skipped or failed in a parent process, use the `resetFailedTasks` flag:
 ```ts
 await processB.runAsync({
-    synchronizeWithParents: true, 
+    syncWithParents: true, 
     resetFailedTasks: true,
 });
 ```

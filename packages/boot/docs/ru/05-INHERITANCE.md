@@ -63,11 +63,11 @@ await processB.runAsync();
 Задача `taskA` запускалась во время выполнения обоих процессов.
 
 ## 5. Синхронизация процессов
-Для синхронизации состояний задач между процессами используйте флаг `synchronizeWithParents`:
+Для синхронизации состояний задач между процессами используйте флаг `syncWithParents`:
 ```ts
 await processA.runAsync();
 // Task A completed!
-await processB.runAsync({ synchronizeWithParents: true });
+await processB.runAsync({ syncWithParents: true });
 // Task B completed!
 ```
 Задачи, завершённые в родительском процессе, не будут повторно выполняться в дочернем процессе.
@@ -77,7 +77,7 @@ await processB.runAsync({ synchronizeWithParents: true });
 используйте флаг `resetFailedTasks`:
 ```ts
 await processB.runAsync({
-    synchronizeWithParents: true, 
+    syncWithParents: true, 
     resetFailedTasks: true,
 });
 ```

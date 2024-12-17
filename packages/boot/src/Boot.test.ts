@@ -1940,7 +1940,7 @@ describe("Boot", () => {
 
                 // Act -----------------
                 await bootA.runAsync();
-                await bootB.runAsync({ synchronizeWithParents: true });
+                await bootB.runAsync({ syncWithParents: true });
 
                 // Assert --------------
                 expect(bootA.status).toBe(BootStatus.Completed);
@@ -1968,7 +1968,7 @@ describe("Boot", () => {
                 // Act -----------
                 await bootA.runAsync();
                 await bootB.runAsync({
-                    synchronizeWithParents: true,
+                    syncWithParents: true,
                     resetFailedTasks: true,
                 });
 
@@ -2017,7 +2017,7 @@ describe("Boot", () => {
                 await processA.runAsync();
 
                 // Act ------------------
-                await processC.runAsync({ synchronizeWithParents: true });
+                await processC.runAsync({ syncWithParents: true });
 
                 // Assert ---------------
                 expect(taskA.delegate).toHaveBeenCalledTimes(1); // in "processA"
