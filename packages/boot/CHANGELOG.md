@@ -1,11 +1,12 @@
 # Version History
 
-## 1.1.0 (2024-12-ХХ)
+## 1.1.0 (2024-12-17)
 
 ### Features
 - Process inheritance support
-- Process cancellation with `AbortSignal`
 - Task status synchronization with parent processes
+- Tasks priority support
+- Process cancellation with `AbortSignal`
 - Ability to get statuses from task's delegate
 - Better error messages
 
