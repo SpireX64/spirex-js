@@ -1977,5 +1977,49 @@ describe("Boot", () => {
                 expect(task2.delegate).toHaveBeenCalledTimes(1);
             });
         });
+
+        describe("E5. Deep inheritance", () => {
+            test("E5.1 Deep inheritance check", async () => {
+                // Arrange --------
+                const taskA = Boot.task(noop);
+                const taskB = Boot.task(noop);
+                const taskC = Boot.task(noop);
+
+                const processA = new Boot().add(taskA);
+                const processB = new Boot(processA).add(taskB);
+
+                // Act ------------
+                const processC = new Boot(processB).add(taskC);
+
+                // Expect ---------
+                expect(processC.has(taskA)).toBeTruthy();
+                expect(processC.has(taskB)).toBeTruthy();
+                expect(processC.has(taskC)).toBeTruthy();
+
+                expect(processC.isChildOf(processB)).toBeTruthy();
+                expect(processC.isChildOf(processA)).toBeTruthy();
+            });
+
+            test("E5.2 Deep inheritance synchronization", async () => {
+                // Arrange -------------
+                const taskA = Boot.task(jest.fn());
+                const taskB = Boot.task(jest.fn());
+                const taskC = Boot.task(jest.fn());
+
+                const processA = new Boot().add(taskA);
+                const processB = new Boot(processA).add(taskB);
+                const processC = new Boot(processB).add(taskC);
+
+                await processA.runAsync();
+
+                // Act ------------------
+                await processC.runAsync({ synchronizeWithParents: true });
+
+                // Assert ---------------
+                expect(taskA.delegate).toHaveBeenCalledTimes(1); // in "processA"
+                expect(taskB.delegate).toHaveBeenCalledTimes(1); // in "processC"
+                expect(taskC.delegate).toHaveBeenCalledTimes(1); // in "processC"
+            });
+        });
     });
 });

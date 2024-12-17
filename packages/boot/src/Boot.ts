@@ -331,7 +331,10 @@ export class Boot implements IBootProcess {
     public constructor(...parents: readonly Boot[]) {
         if (parents?.length) {
             this._parentsSet = new Set(parents);
-            parents.forEach((parent) => this.addTasksFromParent(parent));
+            parents.forEach((parent) => {
+                this.addTasksFromParent(parent);
+                this.linkGrandParents(parent);
+            });
         }
     }
 
@@ -776,6 +779,14 @@ export class Boot implements IBootProcess {
     /** @internal */
     private addTasksFromParent(boot: Boot): void {
         boot._tasksSet.forEach((parentTask) => this.add(parentTask));
+    }
+
+    /** @internal */
+    private linkGrandParents(parent: Boot): void {
+        parent._parentsSet?.forEach((grandParent) => {
+            this._parentsSet?.add(grandParent);
+            this.linkGrandParents(grandParent);
+        });
     }
 
     /** @internal */
