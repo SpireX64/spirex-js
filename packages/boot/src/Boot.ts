@@ -824,3 +824,10 @@ export class Boot implements IBootProcess {
     }
     // endregion: PRIVATE METHODS
 }
+
+/**
+ * Backward compatibility
+ * @deprecated `AppBoot` identifier is deprecated. Please, use the `Boot` class instead.
+ * @since 1.1.0
+ */
+export const AppBoot = Boot;

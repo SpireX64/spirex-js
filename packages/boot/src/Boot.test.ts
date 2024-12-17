@@ -1,6 +1,7 @@
 // noinspection DuplicatedCode
 
 import {
+    AppBoot,
     Boot,
     BootError,
     BootStatus,
@@ -64,6 +65,10 @@ describe("Boot", () => {
         }
 
         await boot.runAsync();
+    });
+
+    test("Backward compatibility check", () => {
+        expect(AppBoot).toBe(Boot);
     });
 
     describe("A. Creating Tasks", () => {
