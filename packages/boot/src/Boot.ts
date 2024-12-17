@@ -13,6 +13,7 @@ export type TNullable = null | undefined;
 export type TFalsy = TNullable | false | 0;
 
 export interface IBootProcess {
+    readonly tasksCount: number;
     has(task: TBootTask): boolean;
     getTaskStatus(task: TBootTask): TaskStatus;
     getTaskFailReason(task: TBootTask): Error | null;
@@ -135,6 +136,18 @@ type TTaskState = {
     /** Reason of task failure */
     failReason?: Error;
 };
+
+export type TBootProcessEventArgs =
+    | {
+          event: "start" | "finish" | "cancel" | "fail";
+          process: IBootProcess;
+      }
+    | {
+          event: "task-start" | "task-complete" | "task-fail";
+          process: IBootProcess;
+          task?: TBootTask;
+      };
+export type TBootProcessEventListener = (args: TBootProcessEventArgs) => void;
 
 export const DEFAULT_TASK_NAME = "[unnamed]";
 export const DEFAULT_TASK_PRIORITY: number = 0;
@@ -306,6 +319,9 @@ export class Boot implements IBootProcess {
     /** Abort signal */
     private _abortSignal?: AbortSignal;
 
+    /** Process events listener */
+    private _listener: TBootProcessEventListener | undefined;
+
     // endregion: FIELDS
 
     public constructor(...parents: readonly Boot[]) {
@@ -397,6 +413,12 @@ export class Boot implements IBootProcess {
      */
     public getTaskFailReason(task: TBootTask): Error | null {
         return this._tasksStateMap.get(task)?.failReason ?? null;
+    }
+
+    /** Set process events listener */
+    public setEventListener(listener: TBootProcessEventListener): Boot {
+        this._listener = listener;
+        return this;
     }
 
     /**
@@ -542,19 +564,29 @@ export class Boot implements IBootProcess {
                 ) {
                     taskState.status = TaskStatus.Running;
 
+                    this._listener?.({
+                        event: "task-start",
+                        task,
+                        process: this,
+                    });
                     // Запускаем делегат задачи.
                     const mayBePromise = task.delegate({
                         process: this,
                         abortSignal: this._abortSignal,
                     });
-
                     // Если делегат возвращает Promise, ждем его завершения.
                     if (isPromise(mayBePromise)) await mayBePromise;
                     taskState.status = TaskStatus.Completed;
+                    this._listener?.({
+                        event: "task-complete",
+                        task,
+                        process: this,
+                    });
                 }
             } catch (error) {
                 taskState.status = TaskStatus.Fail;
                 taskState.failReason = error as Error;
+                this._listener?.({ event: "task-fail", task, process: this });
                 if (!task.optional) {
                     this.fail(
                         ErrorMessage[BootError.IMPORTANT_TASK_FAILED](
@@ -689,6 +721,7 @@ export class Boot implements IBootProcess {
         if (this._status !== BootStatus.Finalizing) return;
 
         this._status = BootStatus.Completed;
+        this._listener?.({ event: "finish", process: this });
         this._processResolve?.();
     }
 
@@ -715,6 +748,7 @@ export class Boot implements IBootProcess {
     private fail(err: string): void {
         const error = Error(err);
         this._status = BootStatus.Fail;
+        this._listener?.({ event: "fail", process: this });
         this.disposeAwaitersQueue(error);
         this._processReject?.(error);
     }
@@ -729,6 +763,7 @@ export class Boot implements IBootProcess {
             : "Cancelled";
         const error = Error(ErrorMessage[BootError.PROCESS_ABORTED](reason));
         this._status = BootStatus.Cancelled;
+        this._listener?.({ event: "cancel", process: this });
         this.disposeAwaitersQueue(error);
         this._processReject?.(error);
     }
@@ -749,9 +784,11 @@ export class Boot implements IBootProcess {
         }
         if (hasSkippedImportantTasks) {
             this._status = BootStatus.Fail;
+            this._listener?.({ event: "fail", process: this });
             return Promise.reject(Error(ErrorMessage[BootError.NO_ROOT_TASKS]));
         } else {
             this._status = BootStatus.Completed;
+            this._listener?.({ event: "finish", process: this });
             return Promise.resolve();
         }
     }
