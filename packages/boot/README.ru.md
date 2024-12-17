@@ -1,8 +1,11 @@
 # Инициализатор JavaScript приложений
-[![GitHub License](https://img.shields.io/github/license/spirex64/spirex-js?style=for-the-badge)](./LICENSE)
+[![GitHub License](https://img.shields.io/github/license/spirex64/spirex-js?style=for-the-badge)](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/LICENSE)
 [![npm version](https://img.shields.io/npm/v/@spirex/js-boot.svg?style=for-the-badge)](https://www.npmjs.com/package/@spirex/js-boot)
-[![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.npmjs.com/package/@spirex/js-boot)
+[![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
+[**ИСТОРИЯ ИЗМЕНЕНИЙ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.ru.md) ●
+[**ДОКУМЕНТАЦИЯ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/README.md) ●
+[**ENG**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/README.md)
 
 ## Описание
 
@@ -33,15 +36,15 @@ $ bun i @spirex/js-boot
 
 ## Быстрый старт
 ### 1. Импорт класса инициализатора
-Почти все операции выполняются с помощью класса `AppBoot`.
+Почти все операции выполняются с помощью класса `Boot`.
 Поэтому его необходимо импортировать во все файлы,
 где определяются задачи инициализации.
 ```ts
-import { AppBoot } from '@spirex/js-boot';
+import { Boot } from '@spirex/js-boot';
 ```
 
 ### 2. Создание задач инициализации
-Для создания задач инициализации используется метод `AppBoot.task()`.
+Для создания задач инициализации используется метод `Boot.task()`.
 В него передается функция, которая содержит исполняемый код задачи.
 Функция может быть синхронной или асинхронной.
 Имя задачи опционально, но поможет с логированием задач в консоль.
@@ -51,12 +54,12 @@ import { AppBoot } from '@spirex/js-boot';
 как только все зависимости будут выполнены.
 
 ```ts
-const taskA = AppBoot.task('A', async () => {
+const taskA = Boot.task(async () => {
     console.log('Run task A');
     await someAsyncFunction();
 });
 
-const taskB = AppBoot.task('B', () => {
+const taskB = Boot.task(() => {
     console.log('Run task B');
 }, [ taskA ]); // Зависит от 'A'
 ```
@@ -65,7 +68,7 @@ const taskB = AppBoot.task('B', () => {
 В созданный инициализатор добавляются задачи с помощью метода `add(..)`.
 Задачи можно добавлять по одной или сразу несколько в виде массива.
 ```ts
-const boot = new AppBoot()
+const boot = new Boot()
     .add([ taskA, taskB ])
 ```
 

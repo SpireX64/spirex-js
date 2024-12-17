@@ -1,6 +1,6 @@
 {
   "name": "@spirex/js-boot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "private": false,
   "description": "Efficient JavaScript app initialization library with staged execution and dependency management",
@@ -10,6 +10,7 @@
     "initializer",
     "initialization",
     "app init",
+    "app boot",
     "application bootstrapping",
     "task managment",
     "async tasks",
@@ -22,27 +23,28 @@
     "email": "SpireX@outlook.com",
     "url": "https://github.com/SpireX64"
   },
+  "homepage": "https://github.com/SpireX64/spirex-js/tree/main/packages/boot",
   "repository": {
     "type": "git",
     "url": "https://github.com/SpireX64/spirex-js",
     "directory": "packages/boot"
   },
-  "types": "./build/AppBoot.d.ts",
-  "main": "./build/AppBoot.js",
-  "module": "./build/AppBoot.mjs",
+  "types": "./build/Boot.d.ts",
+  "main": "./build/Boot.js",
+  "module": "./build/Boot.mjs",
   "exports": {
     ".": {
       "import": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.mjs"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.mjs"
       },
       "require": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.cjs"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.cjs"
       },
       "default": {
-        "types": "./build/AppBoot.d.ts",
-        "default": "./build/AppBoot.js"
+        "types": "./build/Boot.d.ts",
+        "default": "./build/Boot.js"
       }
     }
   },

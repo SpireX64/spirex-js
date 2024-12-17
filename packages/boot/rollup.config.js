@@ -1,58 +1,57 @@
-const { terser } = require('rollup-plugin-terser');
-const { default: typescript } = require('@rollup/plugin-typescript');
+const { terser } = require("rollup-plugin-terser");
+const { default: typescript } = require("@rollup/plugin-typescript");
 
-const release = process.env.NODE_ENV === 'production'
+const release = process.env.NODE_ENV === "production";
 
-const terserPlugin = release && terser({
-    ecma: 5,
-    compress: {
-        module: true,
-        toplevel: true,
-        drop_console: true,
-        drop_debugger: true
-    }
-})
+const terserPlugin =
+    release &&
+    terser({
+        ecma: 5,
+        compress: {
+            module: true,
+            toplevel: true,
+            drop_console: true,
+            drop_debugger: true,
+        },
+    });
 
-const input = "./src/AppBoot.ts"
+const sourceDir = "./src";
+const sourceFile = `${sourceDir}/Boot.ts`;
+const outDir = "./build";
+const output = `${outDir}/Boot`;
 
 exports.default = [
     {
-        input,
+        input: sourceFile,
         output: {
-            name: "AppBoot",
-            file: "./build/AppBoot.js",
-            format: 'umd',
-            sourcemap: release ? 'inline' : false,
+            name: "Boot",
+            file: `${output}.js`,
+            format: "umd",
+            sourcemap: release ? false : "inline",
         },
-        plugins: [
-            typescript(),
-            terserPlugin,
-        ],
+        plugins: [typescript(), terserPlugin],
     },
     {
-        input,
+        input: sourceFile,
         output: {
-            file: "./build/AppBoot.mjs",
-            format: 'es',
+            file: `${output}.mjs`,
+            format: "es",
         },
         plugins: [
             typescript({
                 declaration: true,
-                declarationDir: "./build",
-                exclude: './src/*.test.ts',
+                declarationDir: outDir,
+                exclude: `${sourceDir}/*.test.ts`,
             }),
             terserPlugin,
         ],
     },
     {
-        input,
+        input: sourceFile,
         output: {
-            file: "./build/AppBoot.cjs",
-            format: 'cjs',
+            file: `${output}.cjs`,
+            format: "cjs",
         },
-        plugins: [
-            typescript(),
-            terserPlugin,
-        ],
+        plugins: [typescript(), terserPlugin],
     },
-]
+];
