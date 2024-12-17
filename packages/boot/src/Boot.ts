@@ -54,93 +54,76 @@ export type TBootTask = {
     dependencies: readonly TBootTaskDependency[];
 };
 
+/** Represents a dependency for a task */
 export type TBootTaskDependency = {
+    /** The task that is depended on */
     task: TBootTask;
+    /** Indicates a weak dependency (executes even if the dependency fails). */
     weak?: boolean;
 };
 
 export type TBootTaskDependencyUnion = TBootTask | TBootTaskDependency;
 
+/** Options for task configuration */
 export type TBootTaskOptions = {
-    priority?: number;
-    optional?: boolean;
+    /** Unique identifier for the task */
     name?: string;
+    /** Priority of the task (default: 0). */
+    priority?: number;
+    /** If true, the task will not halt the process on failure. */
+    optional?: boolean;
+    /** List of dependencies */
     deps?: readonly TBootTaskDependencyUnion[];
 };
 
+/** Options for configuring a boot process. */
 export type TBootProcessOptions = {
+    /** Optional AbortSignal for process cancellation */
     abortSignal?: AbortSignal;
+    /** Sync task statuses with parent processes */
     synchronizeWithParents?: boolean;
+    /** Re-run failed/skipped tasks from parent processes. */
     resetFailedTasks?: boolean;
 };
 
 /**
  * Representing the possible states of the boot process.
- * @enum {number}
+ * @enum {string}
  */
 export enum BootStatus {
     /** The boot process is idle and not currently running. */
-    Idle,
+    Idle = "Idle",
     /** The boot process is currently running. */
-    Running,
+    Running = "Running",
     /** Waiting last tasks to be completed */
-    Finalizing,
+    Finalizing = "Finalizing",
     /** The boot process has completed. */
-    Completed,
+    Completed = "Completed",
     /** The boot process execution failed */
-    Fail,
+    Fail = "Fail",
     /** The boot process execution cancelled with abort signal */
-    Cancelled,
+    Cancelled = "Cancelled",
 }
 
-export namespace BootStatus {
-    export function nameOf(status: BootStatus): string {
-        switch (status) {
-            case BootStatus.Idle:
-                return "Idle";
-            case BootStatus.Running:
-                return "Running";
-            case BootStatus.Finalizing:
-                return "Finalizing";
-            case BootStatus.Completed:
-                return "Completed";
-            case BootStatus.Fail:
-                return "Fail";
-            case BootStatus.Cancelled:
-                return "Cancelled";
-        }
-    }
-}
-
+/**
+ * Representing the possible states of the task.
+ * @enum {string}
+ */
 export enum TaskStatus {
-    Unknown,
-    Idle,
-    Waiting,
-    Running,
-    Completed,
-    Fail,
-    Skipped,
-}
-
-export namespace TaskStatus {
-    export function nameOf(status: TaskStatus): string {
-        switch (status) {
-            case TaskStatus.Unknown:
-                return "Unknown";
-            case TaskStatus.Idle:
-                return "Idle";
-            case TaskStatus.Waiting:
-                return "Waiting";
-            case TaskStatus.Running:
-                return "Running";
-            case TaskStatus.Completed:
-                return "Completed";
-            case TaskStatus.Fail:
-                return "Fail";
-            case TaskStatus.Skipped:
-                return "Skipped";
-        }
-    }
+    /** Task is created but not added to the process */
+    Unknown = "Unknown",
+    /** Task is added to the process but not yet running */
+    Idle = "Idle",
+    /** Task is waiting for dependencies to complete */
+    Waiting = "Waiting",
+    /** Task is currently executing */
+    Running = "Running",
+    /** Task completed successfully */
+    Completed = "Completed",
+    /** Task failed */
+    Fail = "Fail",
+    /** Task was skipped due to dependency issues */
+    Skipped = "Skipped",
 }
 
 /** @internal */
@@ -159,6 +142,7 @@ export const DEFAULT_TASK_PRIORITY: number = 0;
 const getTaskName = (name: string) =>
     name.length > 0 ? name : DEFAULT_TASK_NAME;
 
+/** Error codes for common process exceptions */
 export enum BootError {
     ALREADY_STARTED = "ERR_ALREADY_STARTED",
     TASK_ADDITION_DENIED = "ERR_TASK_ADDITION_DENIED",
@@ -172,9 +156,9 @@ export enum BootError {
 
 const ErrorMessage = {
     [BootError.ALREADY_STARTED]: (status: BootStatus) =>
-        `Boot[${BootError.ALREADY_STARTED}]: The boot process cannot be started because it is already running or has completed. Current status: ${BootStatus.nameOf(status)}`,
+        `Boot[${BootError.ALREADY_STARTED}]: The boot process cannot be started because it is already running or has completed. Current status: ${status}`,
     [BootError.TASK_ADDITION_DENIED]: (status: BootStatus) =>
-        `Boot[${BootError.TASK_ADDITION_DENIED}]: Tasks cannot be added after the boot process has started. Current status: ${BootStatus.nameOf(status)}.`,
+        `Boot[${BootError.TASK_ADDITION_DENIED}]: Tasks cannot be added after the boot process has started. Current status: ${status}.`,
     [BootError.INVALID_TASK_PRIORITY]: (taskName: string, priority: unknown) =>
         `Boot[${BootError.INVALID_TASK_PRIORITY}]: The provided task priority for task "${getTaskName(taskName)}" must be a number. Received: ${priority}.`,
     [BootError.STRONG_DEPENDENCY_ON_OPTIONAL]: (
@@ -196,10 +180,6 @@ const ErrorMessage = {
 
 function isPromise(obj: any): obj is Promise<unknown> {
     return obj != null && typeof obj === "object" && "then" in obj;
-}
-
-export function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
-    return task.dependencies.some((it) => it.task === dependency);
 }
 
 function comparePriority(lhv: TBootTask, rhv: TBootTask): number {

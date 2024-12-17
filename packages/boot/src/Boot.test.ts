@@ -5,8 +5,8 @@ import {
     BootError,
     BootStatus,
     DEFAULT_TASK_PRIORITY,
-    hasDependency,
     TaskStatus,
+    TBootTask,
 } from "./Boot";
 
 function catchError(func: () => unknown): Error | undefined {
@@ -27,6 +27,10 @@ async function catchErrorAsync(
         if (e instanceof Error) return e;
     }
     return undefined;
+}
+
+function hasDependency(task: TBootTask, dependency: TBootTask): boolean {
+    return task.dependencies.some((it) => it.task === dependency);
 }
 
 const delayAsync = (delay: number) =>
@@ -612,7 +616,7 @@ describe("Boot", () => {
             // Assert ------------
             expect(error).not.toBeUndefined();
             expect(error?.message).toContain(BootError.TASK_ADDITION_DENIED);
-            expect(error?.message).toContain(BootStatus.nameOf(boot.status));
+            expect(error?.message).toContain(boot.status);
         });
     });
 
@@ -1739,7 +1743,7 @@ describe("Boot", () => {
             // Assert --------------
             expect(error).not.toBeUndefined();
             expect(error?.message).toContain(BootError.ALREADY_STARTED);
-            expect(error?.message).toContain(BootStatus.nameOf(boot.status));
+            expect(error?.message).toContain(boot.status);
             expect(boot.status).toBe(BootStatus.Completed);
         });
 
