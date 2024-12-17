@@ -81,3 +81,5 @@ await processB.runAsync({
     resetFailedTasks: true,
 });
 ```
+
+[◀ Создание и настройка процесса](./04-PROCESS.md) ● [Индекс](./README.md)

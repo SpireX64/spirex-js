@@ -1,4 +1,4 @@
-[◀ Task Dependencies](./03-TASKS_DEPS.md) ● [INDEX](./README.md) ● [Наследование процессов ▶](./05-INHERITANCE.md)
+[◀ Task Dependencies](./03-TASKS_DEPS.md) ● [INDEX](./README.md) ● [Process Inheritance ▶](./05-INHERITANCE.md)
 
 # Creating and Configuring a Process
 A process in `@spirex/js-boot` manages the execution of tasks, ensuring they run in the correct order,
@@ -187,4 +187,4 @@ const task = Boot.task(({ abortSignal }) => {
 When the process receives an abort signal,
 tasks respect the signal and handle the situation gracefully based on their logic.
 
-[◀ Зависимости задач](./03-TASKS_DEPS.md) ● [Индекс](./README.md) ● [Наследование процессов ▶](./05-INHERITANCE.md)
+[◀ Task Dependencies](./03-TASKS_DEPS.md) ● [INDEX](./README.md) ● [Process Inheritance ▶](./05-INHERITANCE.md)
