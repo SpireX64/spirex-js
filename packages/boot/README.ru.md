@@ -4,7 +4,8 @@
 [![TypeScript](https://img.shields.io/badge/ТайпСкрипт-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
 [**ИСТОРИЯ ИЗМЕНЕНИЙ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.ru.md) ●
-[**ДОКУМЕНТАЦИЯ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/README.md)
+[**ДОКУМЕНТАЦИЯ**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/ru/README.md) ●
+[**ENG**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/README.md)
 
 ## Описание
 

@@ -4,7 +4,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
 [**CHANGE LOG**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/CHANGELOG.md) ●
-[**DOCUMENTATION**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/en/README.md)
+[**DOCUMENTATION**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/docs/en/README.md) ●
+[**RUS**](https://github.com/SpireX64/spirex-js/blob/main/packages/boot/README.ru.md)
 
 ## Description
 
