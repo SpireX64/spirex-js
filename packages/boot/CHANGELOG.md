@@ -1,6 +1,6 @@
 # Version History
 
-## 1.1.0 (2024-12-17)
+## 1.1.1 (2024-12-17)
 
 ### Features
 - Process inheritance support
