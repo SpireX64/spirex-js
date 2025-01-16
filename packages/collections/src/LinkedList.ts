@@ -79,6 +79,18 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         this._size += 1;
     }
 
+    public popHead(): T | undefined {
+        if (!this._head) return void 0;
+        const value = this._head.value;
+        if (this._tail === this._head) {
+            this._head = this._tail = void 0;
+        } else {
+            this._head = this._head.next ?? undefined;
+        }
+        this._size -= 1;
+        return value;
+    }
+
     public pushTail(item: T): void {
         const pTail = this._tail;
         this._tail = makeNode(this, item);

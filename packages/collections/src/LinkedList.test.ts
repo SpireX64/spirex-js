@@ -173,4 +173,53 @@ describe("LinkedList", () => {
             expect(list.tail).toBe(expectedTailValue);
         });
     });
+
+    describe("Removing items", () => {
+        describe("Pop from head", () => {
+            test("Pop empty head", () => {
+                // Arrange -----
+                const list = new LinkedList();
+
+                // Act ----------
+                const value = list.popHead();
+
+                // Assert -------
+                expect(value).toBeUndefined();
+                expect(list.head).toBeUndefined();
+            });
+
+            test("Pop last from head", () => {
+                // Arrange -----
+                const expectedValue = 42;
+                const list = LinkedList.of(expectedValue);
+
+                // Act ----------
+                const value = list.popHead();
+
+                // Assert -------
+                expect(value).toBe(expectedValue);
+                expect(list.isEmpty).toBeTruthy();
+                expect(list.size).toBe(0);
+                expect(list.headNode).toBeUndefined();
+                expect(list.tailNode).toBeUndefined();
+            });
+
+            test("Pop head value", () => {
+                // Arrange --------
+                const expectedValue = 42;
+                const expectedNextHeadValue = 37;
+                const list = LinkedList.of(
+                    expectedValue,
+                    expectedNextHeadValue,
+                );
+
+                // Act ------------
+                const value = list.popHead();
+
+                // Assert ---------
+                expect(value).toBe(expectedValue);
+                expect(list.head).toBe(expectedNextHeadValue);
+            });
+        });
+    });
 });
