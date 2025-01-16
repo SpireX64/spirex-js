@@ -47,4 +47,14 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         };
         this._size = 1;
     }
+
+    public pushTail(item: T): void {
+        this._tail = this._head = {
+            list: this,
+            next: null,
+            prev: null,
+            value: item,
+        };
+        this._size = 1;
+    }
 }
