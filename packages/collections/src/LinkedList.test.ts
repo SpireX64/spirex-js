@@ -36,6 +36,30 @@ describe("LinkedList", () => {
         });
     });
 
+    describe("Get values", () => {
+        test("Get head value", () => {
+            // Arrange ---------
+            const expectedValue = 42;
+            const list = LinkedList.from([expectedValue, 55, 88]);
+
+            // Act -------------
+            const head = list.head;
+
+            expect(head).toBe(expectedValue);
+        });
+
+        test("Get tail value", () => {
+            // Arrange ---------
+            const expectedValue = 42;
+            const list = LinkedList.from([55, 88, expectedValue]);
+
+            // Act -------------
+            const head = list.head;
+
+            expect(head).toBe(expectedValue);
+        });
+    });
+
     describe("Adding items", () => {
         test("Add first item to head", () => {
             // Arrange -------
