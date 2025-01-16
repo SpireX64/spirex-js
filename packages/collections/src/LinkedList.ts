@@ -69,6 +69,15 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return this._size;
     }
 
+    public has(value: T): boolean {
+        let cursor: LinkedListNode<T> | null | undefined = this._head;
+        while (cursor) {
+            if (cursor.value === value) return true;
+            cursor = cursor.next;
+        }
+        return false;
+    }
+
     public insertHead(item: T): void {
         const pHead = this._head;
         this._head = makeNode(this, item);

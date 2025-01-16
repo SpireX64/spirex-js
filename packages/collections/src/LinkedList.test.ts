@@ -281,4 +281,30 @@ describe("LinkedList", () => {
             });
         });
     });
+
+    describe("Searching", () => {
+        describe("Check list has value", () => {
+            test("Includes value", () => {
+                // Arrange ----
+                const list = LinkedList.of(12, 23, 34);
+
+                // Act --------
+                const hasValue = list.has(23);
+
+                // Assert -----
+                expect(hasValue).toBeTruthy();
+            });
+
+            test("Not includes value", () => {
+                // Arrange ----
+                const list = LinkedList.of(12, 34);
+
+                // Act --------
+                const hasValue = list.has(23);
+
+                // Assert -----
+                expect(hasValue).toBeFalsy();
+            });
+        });
+    });
 });
