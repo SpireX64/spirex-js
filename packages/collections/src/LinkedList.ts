@@ -27,6 +27,18 @@ function makeNode<T>(list: ReadonlyLinkedList<T>, value: T): LinkedListNode<T> {
 }
 
 export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
+    public static from<T>(iterable: Iterable<T>): LinkedList<T> {
+        const list = new LinkedList<T>();
+        const iter = iterable[Symbol.iterator]();
+        let cursor;
+        while (!(cursor = iter.next()).done) list.pushTail(cursor.value);
+        return list;
+    }
+
+    public static of<T>(...values: readonly T[]): LinkedList<T> {
+        return LinkedList.from(values);
+    }
+
     private _head: LinkedListNode<T> | undefined;
     private _tail: LinkedListNode<T> | undefined;
     private _size: number = 0;

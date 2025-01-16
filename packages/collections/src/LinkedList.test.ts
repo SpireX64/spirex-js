@@ -1,15 +1,39 @@
 import { LinkedList } from "./LinkedList";
 
 describe("LinkedList", () => {
-    test("Empty LinkedList", () => {
-        // Act ---------
-        const list = new LinkedList();
+    describe("Creating LinkedList", () => {
+        test("Constructor", () => {
+            // Act ---------
+            const list = new LinkedList();
 
-        // Assert ------
-        expect(list.size).toBe(0);
-        expect(list.isEmpty).toBeTruthy();
-        expect(list.head).toBeUndefined();
-        expect(list.tail).toBeUndefined();
+            // Assert ------
+            expect(list.size).toBe(0);
+            expect(list.isEmpty).toBeTruthy();
+            expect(list.head).toBeUndefined();
+            expect(list.tail).toBeUndefined();
+        });
+
+        test("From iterable", () => {
+            // Act ----------
+            const list = LinkedList.from([1, 2, 3]);
+
+            // Assert -------
+            expect(list.isEmpty).toBeFalsy();
+            expect(list.size).toBe(3);
+            expect(list.head).toBe(1);
+            expect(list.tail).toBe(3);
+        });
+
+        test("Of values", () => {
+            // Act ----------
+            const list = LinkedList.of(1, 2, 3);
+
+            // Assert -------
+            expect(list.isEmpty).toBeFalsy();
+            expect(list.size).toBe(3);
+            expect(list.head).toBe(1);
+            expect(list.tail).toBe(3);
+        });
     });
 
     describe("Adding items", () => {
