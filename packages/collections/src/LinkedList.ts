@@ -28,6 +28,12 @@ function makeNode<T>(list: ReadonlyLinkedList<T>, value: T): LinkedListNode<T> {
     };
 }
 
+export type LinkedListPredicate<T> = (
+    value: T,
+    node: LinkedListNode<T>,
+    list: ReadonlyLinkedList<T>,
+) => boolean;
+
 export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     public static from<T>(iterable: Iterable<T>): LinkedList<T> {
         const list = new LinkedList<T>();
@@ -49,16 +55,16 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return this._head?.value;
     }
 
-    public get headNode(): LinkedListNode<T> | undefined {
-        return this._head ? { ...this._head } : void 0;
+    public get headNode(): Readonly<LinkedListNode<T>> | undefined {
+        return this._head ? this._head : void 0;
     }
 
     public get tail(): T | undefined {
         return this._tail?.value;
     }
 
-    public get tailNode(): LinkedListNode<T> | undefined {
-        return this._tail ? { ...this._tail } : void 0;
+    public get tailNode(): Readonly<LinkedListNode<T>> | undefined {
+        return this._tail ? this._tail : void 0;
     }
 
     public get isEmpty(): boolean {
@@ -70,12 +76,18 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     }
 
     public has(value: T): boolean {
+        return !!this.findFirst((it) => it === value);
+    }
+
+    public findFirst(
+        predicate: LinkedListPredicate<T>,
+    ): Readonly<LinkedListNode<T>> | null {
         let cursor: LinkedListNode<T> | null | undefined = this._head;
         while (cursor) {
-            if (cursor.value === value) return true;
+            if (predicate(cursor.value, cursor, this)) return cursor;
             cursor = cursor.next;
         }
-        return false;
+        return null;
     }
 
     public insertHead(item: T): void {

@@ -82,7 +82,6 @@ describe("LinkedList", () => {
             expect(headNode?.prev).toBeNull();
             expect(headNode?.next).not.toBeNull();
             expect(headNode?.next?.value).toBe(expectedNextValue);
-            expect(headNode).not.toBe(list.headNode);
         });
 
         test("Get tail node", () => {
@@ -104,7 +103,6 @@ describe("LinkedList", () => {
             expect(tailNode?.next).toBeNull();
             expect(tailNode?.prev).not.toBeNull();
             expect(tailNode?.prev?.value).toBe(expectedPrevValue);
-            expect(tailNode).not.toBe(list.tailNode);
         });
     });
 
@@ -304,6 +302,35 @@ describe("LinkedList", () => {
 
                 // Assert -----
                 expect(hasValue).toBeFalsy();
+            });
+        });
+
+        describe("Find first node by condition", () => {
+            test("Find first node by condition in empty list", () => {
+                // Arrange -------
+                const predicate = jest.fn();
+                const list = new LinkedList();
+
+                // Act -----------
+                const node = list.findFirst(predicate);
+
+                // Assert --------
+                expect(node).toBeNull();
+                expect(predicate).not.toHaveBeenCalled();
+            });
+
+            test("Find first node by condition in empty list", () => {
+                // Arrange -------
+                const predicate = jest.fn((i) => i > 2);
+                const list = LinkedList.of(1, 2, 3, 4);
+
+                // Act -----------
+                const node = list.findFirst(predicate);
+
+                // Assert --------
+                expect(node).not.toBeNull();
+                expect(node?.value).toBe(3);
+                expect(predicate).toHaveBeenCalled();
             });
         });
     });
