@@ -11,6 +11,7 @@ interface ReadonlyLinkedList<T> {
 }
 
 type LinkedListNode<T> = {
+    list: ReadonlyLinkedList<T>;
     next: LinkedListNode<T> | null;
     prev: LinkedListNode<T> | null;
     value: T;
@@ -19,6 +20,7 @@ type LinkedListNode<T> = {
 export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     private _head: LinkedListNode<T> | undefined;
     private _tail: LinkedListNode<T> | undefined;
+    private _size: number = 0;
 
     public get head(): T | undefined {
         return this._head?.value;
@@ -33,6 +35,16 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     }
 
     public get size(): number {
-        return 0;
+        return this._size;
+    }
+
+    public pushHead(item: T): void {
+        this._head = this._tail = {
+            list: this,
+            next: null,
+            prev: null,
+            value: item,
+        };
+        this._size = 1;
     }
 }
