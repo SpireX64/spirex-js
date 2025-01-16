@@ -186,6 +186,7 @@ describe("LinkedList", () => {
                 // Assert -------
                 expect(value).toBeUndefined();
                 expect(list.head).toBeUndefined();
+                expect(list.size).toBe(0);
             });
 
             test("Pop last from head", () => {
@@ -211,6 +212,7 @@ describe("LinkedList", () => {
                 const list = LinkedList.of(
                     expectedValue,
                     expectedNextHeadValue,
+                    123,
                 );
 
                 // Act ------------
@@ -218,7 +220,60 @@ describe("LinkedList", () => {
 
                 // Assert ---------
                 expect(value).toBe(expectedValue);
+                expect(list.size).toBe(2);
                 expect(list.head).toBe(expectedNextHeadValue);
+                expect(list.headNode?.prev).toBeFalsy();
+            });
+        });
+
+        describe("Pop from tail", () => {
+            test("Pop empty tail", () => {
+                // Arrange -----
+                const list = new LinkedList();
+
+                // Act ----------
+                const value = list.popTail();
+
+                // Assert -------
+                expect(value).toBeUndefined();
+                expect(list.tail).toBeUndefined();
+                expect(list.size).toBe(0);
+            });
+
+            test("Pop last from tail", () => {
+                // Arrange -----
+                const expectedValue = 42;
+                const list = LinkedList.of(expectedValue);
+
+                // Act ----------
+                const value = list.popTail();
+
+                // Assert -------
+                expect(value).toBe(expectedValue);
+                expect(list.isEmpty).toBeTruthy();
+                expect(list.size).toBe(0);
+                expect(list.tailNode).toBeUndefined();
+                expect(list.headNode).toBeUndefined();
+            });
+
+            test("Pop tail value", () => {
+                // Arrange --------
+                const expectedValue = 42;
+                const expectedNextTailValue = 37;
+                const list = LinkedList.of(
+                    123,
+                    expectedNextTailValue,
+                    expectedValue,
+                );
+
+                // Act ------------
+                const value = list.popTail();
+
+                // Assert ---------
+                expect(value).toBe(expectedValue);
+                expect(list.tail).toBe(expectedNextTailValue);
+                expect(list.tailNode?.next).toBeFalsy();
+                expect(list.size).toBe(2);
             });
         });
     });

@@ -3,19 +3,21 @@
 // MIT License
 // https://github.com/spirex64
 
-interface ReadonlyLinkedList<T> {
-    readonly head: T | undefined;
-    readonly tail: T | undefined;
-    readonly isEmpty: boolean;
-    readonly size: number;
-}
-
-type LinkedListNode<T> = {
+export type LinkedListNode<T> = {
     list: ReadonlyLinkedList<T>;
     next: LinkedListNode<T> | null;
     prev: LinkedListNode<T> | null;
     value: T;
 };
+
+export interface ReadonlyLinkedList<T> {
+    readonly head: T | undefined;
+    readonly tail: T | undefined;
+    readonly headNode: LinkedListNode<T> | undefined;
+    readonly tailNode: LinkedListNode<T> | undefined;
+    readonly isEmpty: boolean;
+    readonly size: number;
+}
 
 function makeNode<T>(list: ReadonlyLinkedList<T>, value: T): LinkedListNode<T> {
     return {
@@ -82,10 +84,11 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     public popHead(): T | undefined {
         if (!this._head) return void 0;
         const value = this._head.value;
-        if (this._tail === this._head) {
+        if (!this._head.next || this._tail === this._head) {
             this._head = this._tail = void 0;
         } else {
-            this._head = this._head.next ?? undefined;
+            this._head = this._head.next;
+            this._head.prev = null;
         }
         this._size -= 1;
         return value;
@@ -101,5 +104,18 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
             this._head = this._tail;
         }
         this._size += 1;
+    }
+
+    public popTail(): T | undefined {
+        if (!this._tail) return void 0;
+        const value = this._tail.value;
+        if (!this._tail.prev || this._head === this._tail) {
+            this._tail = this._head = void 0;
+        } else {
+            this._tail = this._tail.prev;
+            this._tail.next = null;
+        }
+        this._size -= 1;
+        return value;
     }
 }
