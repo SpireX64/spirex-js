@@ -42,5 +42,39 @@ describe("LinkedList", () => {
             expect(list.head).toBe(expectedValue);
             expect(list.tail).toBe(expectedValue);
         });
+
+        test("Add second item to head", () => {
+            // Arrange -------
+            const expectedHeadValue = "head";
+            const expectedTailValue = "tail";
+
+            const list = new LinkedList<string>();
+            list.pushTail(expectedTailValue);
+
+            // Act -----------
+            list.pushHead(expectedHeadValue);
+
+            // Assert -------
+            expect(list.size).toBe(2);
+            expect(list.head).toBe(expectedHeadValue);
+            expect(list.tail).toBe(expectedTailValue);
+        });
+
+        test("Add second item to tail", () => {
+            // Arrange -------
+            const expectedHeadValue = "head";
+            const expectedTailValue = "tail";
+
+            const list = new LinkedList<string>();
+            list.pushHead(expectedHeadValue);
+
+            // Act -----------
+            list.pushTail(expectedTailValue);
+
+            // Assert -------
+            expect(list.size).toBe(2);
+            expect(list.head).toBe(expectedHeadValue);
+            expect(list.tail).toBe(expectedTailValue);
+        });
     });
 });

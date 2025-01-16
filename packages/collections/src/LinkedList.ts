@@ -17,6 +17,15 @@ type LinkedListNode<T> = {
     value: T;
 };
 
+function makeNode<T>(list: ReadonlyLinkedList<T>, value: T): LinkedListNode<T> {
+    return {
+        list,
+        value,
+        next: null,
+        prev: null,
+    };
+}
+
 export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     private _head: LinkedListNode<T> | undefined;
     private _tail: LinkedListNode<T> | undefined;
@@ -39,22 +48,26 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
     }
 
     public pushHead(item: T): void {
-        this._head = this._tail = {
-            list: this,
-            next: null,
-            prev: null,
-            value: item,
-        };
-        this._size = 1;
+        const pHead = this._head;
+        this._head = makeNode(this, item);
+        if (pHead) {
+            this._head.next = pHead;
+            pHead.prev = this._head;
+        } else {
+            this._tail = this._head;
+        }
+        this._size += 1;
     }
 
     public pushTail(item: T): void {
-        this._tail = this._head = {
-            list: this,
-            next: null,
-            prev: null,
-            value: item,
-        };
-        this._size = 1;
+        const pTail = this._tail;
+        this._tail = makeNode(this, item);
+        if (pTail) {
+            this._tail.prev = pTail;
+            pTail.next = this._tail;
+        } else {
+            this._head = this._tail;
+        }
+        this._size += 1;
     }
 }
