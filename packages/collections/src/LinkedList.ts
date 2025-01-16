@@ -47,8 +47,16 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return this._head?.value;
     }
 
+    public get headNode(): LinkedListNode<T> | undefined {
+        return this._head ? { ...this._head } : void 0;
+    }
+
     public get tail(): T | undefined {
         return this._tail?.value;
+    }
+
+    public get tailNode(): LinkedListNode<T> | undefined {
+        return this._tail ? { ...this._tail } : void 0;
     }
 
     public get isEmpty(): boolean {

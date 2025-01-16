@@ -9,6 +9,8 @@ describe("LinkedList", () => {
             // Assert ------
             expect(list.size).toBe(0);
             expect(list.isEmpty).toBeTruthy();
+            expect(list.headNode).toBeUndefined();
+            expect(list.tailNode).toBeUndefined();
             expect(list.head).toBeUndefined();
             expect(list.tail).toBeUndefined();
         });
@@ -45,6 +47,7 @@ describe("LinkedList", () => {
             // Act -------------
             const head = list.head;
 
+            // Assert ----------
             expect(head).toBe(expectedValue);
         });
 
@@ -54,9 +57,54 @@ describe("LinkedList", () => {
             const list = LinkedList.from([55, 88, expectedValue]);
 
             // Act -------------
-            const head = list.head;
+            const head = list.tail;
 
+            // Assert ----------
             expect(head).toBe(expectedValue);
+        });
+
+        test("Get head node", () => {
+            // Arrange ---------
+            const expectedValue = 1;
+            const expectedNextValue = 2;
+            const list = LinkedList.from([
+                expectedValue,
+                expectedNextValue,
+                42,
+            ]);
+
+            // Act -------------
+            const headNode = list.headNode;
+
+            // Assert ----------
+            expect(headNode).not.toBeUndefined();
+            expect(headNode?.value).toBe(expectedValue);
+            expect(headNode?.prev).toBeNull();
+            expect(headNode?.next).not.toBeNull();
+            expect(headNode?.next?.value).toBe(expectedNextValue);
+            expect(headNode).not.toBe(list.headNode);
+        });
+
+        test("Get tail node", () => {
+            // Arrange ---------
+            const expectedValue = 1;
+            const expectedPrevValue = 2;
+            const list = LinkedList.from([
+                42,
+                expectedPrevValue,
+                expectedValue,
+            ]);
+
+            // Act -------------
+            const tailNode = list.tailNode;
+
+            // Assert ----------
+            expect(tailNode).not.toBeUndefined();
+            expect(tailNode?.value).toBe(expectedValue);
+            expect(tailNode?.next).toBeNull();
+            expect(tailNode?.prev).not.toBeNull();
+            expect(tailNode?.prev?.value).toBe(expectedPrevValue);
+            expect(tailNode).not.toBe(list.tailNode);
         });
     });
 
