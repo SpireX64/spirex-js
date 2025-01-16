@@ -17,6 +17,14 @@ export interface ReadonlyLinkedList<T> {
     readonly tailNode: LinkedListNode<T> | undefined;
     readonly isEmpty: boolean;
     readonly size: number;
+
+    has(value: T): boolean;
+    findFirst(
+        predicate: LinkedListPredicate<T>,
+    ): Readonly<LinkedListNode<T>> | null;
+    findLast(
+        predicate: LinkedListPredicate<T>,
+    ): Readonly<LinkedListNode<T>> | null;
 }
 
 function makeNode<T>(list: ReadonlyLinkedList<T>, value: T): LinkedListNode<T> {
