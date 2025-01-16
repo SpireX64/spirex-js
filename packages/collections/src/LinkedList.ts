@@ -33,7 +33,7 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         const list = new LinkedList<T>();
         const iter = iterable[Symbol.iterator]();
         let cursor;
-        while (!(cursor = iter.next()).done) list.pushTail(cursor.value);
+        while (!(cursor = iter.next()).done) list.insertTail(cursor.value);
         return list;
     }
 
@@ -69,7 +69,7 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return this._size;
     }
 
-    public pushHead(item: T): void {
+    public insertHead(item: T): void {
         const pHead = this._head;
         this._head = makeNode(this, item);
         if (pHead) {
@@ -81,7 +81,7 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         this._size += 1;
     }
 
-    public popHead(): T | undefined {
+    public removeHead(): T | undefined {
         if (!this._head) return void 0;
         const value = this._head.value;
         if (!this._head.next || this._tail === this._head) {
@@ -94,7 +94,7 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return value;
     }
 
-    public pushTail(item: T): void {
+    public insertTail(item: T): void {
         const pTail = this._tail;
         this._tail = makeNode(this, item);
         if (pTail) {
@@ -106,7 +106,7 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         this._size += 1;
     }
 
-    public popTail(): T | undefined {
+    public removeTail(): T | undefined {
         if (!this._tail) return void 0;
         const value = this._tail.value;
         if (!this._tail.prev || this._head === this._tail) {

@@ -108,80 +108,84 @@ describe("LinkedList", () => {
         });
     });
 
-    describe("Adding items", () => {
-        test("Add first item to head", () => {
-            // Arrange -------
-            const expectedValue = 42;
-            const list = new LinkedList<number>();
+    describe("Inserting items", () => {
+        describe("Insert to head", () => {
+            test("Insert first item to head", () => {
+                // Arrange -------
+                const expectedValue = 42;
+                const list = new LinkedList<number>();
 
-            // Act -----------
-            list.pushHead(expectedValue);
+                // Act -----------
+                list.insertHead(expectedValue);
 
-            // Assert -------
-            expect(list.isEmpty).toBeFalsy();
-            expect(list.size).toBe(1);
-            expect(list.head).toBe(expectedValue);
-            expect(list.tail).toBe(expectedValue);
+                // Assert -------
+                expect(list.isEmpty).toBeFalsy();
+                expect(list.size).toBe(1);
+                expect(list.head).toBe(expectedValue);
+                expect(list.tail).toBe(expectedValue);
+            });
+
+            test("Insert second item to head", () => {
+                // Arrange -------
+                const expectedHeadValue = "head";
+                const expectedTailValue = "tail";
+
+                const list = new LinkedList<string>();
+                list.insertTail(expectedTailValue);
+
+                // Act -----------
+                list.insertHead(expectedHeadValue);
+
+                // Assert -------
+                expect(list.size).toBe(2);
+                expect(list.head).toBe(expectedHeadValue);
+                expect(list.tail).toBe(expectedTailValue);
+            });
         });
 
-        test("Add first item to tail", () => {
-            // Arrange -------
-            const expectedValue = 42;
-            const list = new LinkedList<number>();
+        describe("Insert to tail", () => {
+            test("Insert first item to tail", () => {
+                // Arrange -------
+                const expectedValue = 42;
+                const list = new LinkedList<number>();
 
-            // Act -----------
-            list.pushTail(expectedValue);
+                // Act -----------
+                list.insertTail(expectedValue);
 
-            // Assert -------
-            expect(list.isEmpty).toBeFalsy();
-            expect(list.size).toBe(1);
-            expect(list.head).toBe(expectedValue);
-            expect(list.tail).toBe(expectedValue);
-        });
+                // Assert -------
+                expect(list.isEmpty).toBeFalsy();
+                expect(list.size).toBe(1);
+                expect(list.head).toBe(expectedValue);
+                expect(list.tail).toBe(expectedValue);
+            });
 
-        test("Add second item to head", () => {
-            // Arrange -------
-            const expectedHeadValue = "head";
-            const expectedTailValue = "tail";
+            test("Insert second item to tail", () => {
+                // Arrange -------
+                const expectedHeadValue = "head";
+                const expectedTailValue = "tail";
 
-            const list = new LinkedList<string>();
-            list.pushTail(expectedTailValue);
+                const list = new LinkedList<string>();
+                list.insertHead(expectedHeadValue);
 
-            // Act -----------
-            list.pushHead(expectedHeadValue);
+                // Act -----------
+                list.insertTail(expectedTailValue);
 
-            // Assert -------
-            expect(list.size).toBe(2);
-            expect(list.head).toBe(expectedHeadValue);
-            expect(list.tail).toBe(expectedTailValue);
-        });
-
-        test("Add second item to tail", () => {
-            // Arrange -------
-            const expectedHeadValue = "head";
-            const expectedTailValue = "tail";
-
-            const list = new LinkedList<string>();
-            list.pushHead(expectedHeadValue);
-
-            // Act -----------
-            list.pushTail(expectedTailValue);
-
-            // Assert -------
-            expect(list.size).toBe(2);
-            expect(list.head).toBe(expectedHeadValue);
-            expect(list.tail).toBe(expectedTailValue);
+                // Assert -------
+                expect(list.size).toBe(2);
+                expect(list.head).toBe(expectedHeadValue);
+                expect(list.tail).toBe(expectedTailValue);
+            });
         });
     });
 
     describe("Removing items", () => {
-        describe("Pop from head", () => {
-            test("Pop empty head", () => {
+        describe("Remove from head", () => {
+            test("Remove empty head", () => {
                 // Arrange -----
                 const list = new LinkedList();
 
                 // Act ----------
-                const value = list.popHead();
+                const value = list.removeHead();
 
                 // Assert -------
                 expect(value).toBeUndefined();
@@ -189,13 +193,13 @@ describe("LinkedList", () => {
                 expect(list.size).toBe(0);
             });
 
-            test("Pop last from head", () => {
+            test("Remove last from head", () => {
                 // Arrange -----
                 const expectedValue = 42;
                 const list = LinkedList.of(expectedValue);
 
                 // Act ----------
-                const value = list.popHead();
+                const value = list.removeHead();
 
                 // Assert -------
                 expect(value).toBe(expectedValue);
@@ -205,7 +209,7 @@ describe("LinkedList", () => {
                 expect(list.tailNode).toBeUndefined();
             });
 
-            test("Pop head value", () => {
+            test("Remove head value", () => {
                 // Arrange --------
                 const expectedValue = 42;
                 const expectedNextHeadValue = 37;
@@ -216,7 +220,7 @@ describe("LinkedList", () => {
                 );
 
                 // Act ------------
-                const value = list.popHead();
+                const value = list.removeHead();
 
                 // Assert ---------
                 expect(value).toBe(expectedValue);
@@ -226,13 +230,13 @@ describe("LinkedList", () => {
             });
         });
 
-        describe("Pop from tail", () => {
-            test("Pop empty tail", () => {
+        describe("Remove from tail", () => {
+            test("Remove empty tail", () => {
                 // Arrange -----
                 const list = new LinkedList();
 
                 // Act ----------
-                const value = list.popTail();
+                const value = list.removeTail();
 
                 // Assert -------
                 expect(value).toBeUndefined();
@@ -240,13 +244,13 @@ describe("LinkedList", () => {
                 expect(list.size).toBe(0);
             });
 
-            test("Pop last from tail", () => {
+            test("Remove last from tail", () => {
                 // Arrange -----
                 const expectedValue = 42;
                 const list = LinkedList.of(expectedValue);
 
                 // Act ----------
-                const value = list.popTail();
+                const value = list.removeTail();
 
                 // Assert -------
                 expect(value).toBe(expectedValue);
@@ -256,7 +260,7 @@ describe("LinkedList", () => {
                 expect(list.headNode).toBeUndefined();
             });
 
-            test("Pop tail value", () => {
+            test("Remove tail value", () => {
                 // Arrange --------
                 const expectedValue = 42;
                 const expectedNextTailValue = 37;
@@ -267,7 +271,7 @@ describe("LinkedList", () => {
                 );
 
                 // Act ------------
-                const value = list.popTail();
+                const value = list.removeTail();
 
                 // Assert ---------
                 expect(value).toBe(expectedValue);
