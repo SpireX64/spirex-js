@@ -90,6 +90,17 @@ export class LinkedList<T = unknown> implements ReadonlyLinkedList<T> {
         return null;
     }
 
+    public findLast(
+        predicate: LinkedListPredicate<T>,
+    ): Readonly<LinkedListNode<T>> | null {
+        let cursor: LinkedListNode<T> | null | undefined = this._tail;
+        while (cursor) {
+            if (predicate(cursor.value, cursor, this)) return cursor;
+            cursor = cursor.prev;
+        }
+        return null;
+    }
+
     public insertHead(item: T): void {
         const pHead = this._head;
         this._head = makeNode(this, item);

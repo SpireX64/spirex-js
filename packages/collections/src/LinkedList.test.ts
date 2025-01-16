@@ -333,5 +333,34 @@ describe("LinkedList", () => {
                 expect(predicate).toHaveBeenCalled();
             });
         });
+
+        describe("Find last node by condition", () => {
+            test("Find last node by condition in empty list", () => {
+                // Arrange -------
+                const predicate = jest.fn();
+                const list = new LinkedList();
+
+                // Act -----------
+                const node = list.findLast(predicate);
+
+                // Assert --------
+                expect(node).toBeNull();
+                expect(predicate).not.toHaveBeenCalled();
+            });
+
+            test("Find last node by condition in empty list", () => {
+                // Arrange -------
+                const predicate = jest.fn((i) => i <= 2);
+                const list = LinkedList.of(1, 2, 3, 4);
+
+                // Act -----------
+                const node = list.findLast(predicate);
+
+                // Assert --------
+                expect(node).not.toBeNull();
+                expect(node?.value).toBe(2);
+                expect(predicate).toHaveBeenCalled();
+            });
+        });
     });
 });
